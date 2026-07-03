@@ -56,7 +56,7 @@ const Printer = (() => {
   // Construye el canvas completo del ticket a partir de los datos de la venta
   async function buildTicketCanvas(ticket, negocio) {
     const W = PRINTER_DOTS_WIDE;
-    const pad = 12;
+    const pad = 8;
     const innerW = W - pad * 2;
 
     // Medimos primero en un canvas temporal para saber el alto total
@@ -76,7 +76,7 @@ const Printer = (() => {
     try { logoImg = await loadImage("icons/cart-black.png"); } catch (e) { log("sin logo", e); }
     let logoH = 0, logoW = 0;
     if (logoImg) {
-      logoW = Math.min(innerW, 150);
+      logoW = Math.min(innerW, 100); // reducido 33% (antes 150px)
       logoH = Math.round(logoImg.height * (logoW / logoImg.width));
     }
 
@@ -112,11 +112,10 @@ const Printer = (() => {
     y += lineH;                                 // separador
     y += 36;                                    // total
     y += lineH;                                 // separador
-    y += 30;                                    // nombre (footer)
+    y += 30;                                    // sitio web (footer, en lugar del nombre)
     if (negocio.whatsapp) y += smallLineH;      // whatsapp
-    y += smallLineH;                            // sitio web
     y += smallLineH;                            // gracias
-    y += 50;                                    // margen final para cortar el papel
+    y += 16;                                    // margen final para poder cortar el papel
 
     const canvas = document.createElement("canvas");
     canvas.width = W;
@@ -201,13 +200,12 @@ const Printer = (() => {
     ctx.font = fontLine;
     ctx.fillText("-".repeat(32), pad, cy); cy += lineH;
 
-    // --- Pie: nombre + WhatsApp + sitio web + gracias ---
+    // --- Pie: sitio web (mismo formato bold que antes tenía el nombre) + WhatsApp + gracias ---
     ctx.textAlign = "center";
     ctx.font = fontBold;
-    ctx.fillText(negocio.nombre, W / 2, cy); cy += 30;
+    ctx.fillText("mitienditaexpres.com", W / 2, cy); cy += 30;
     ctx.font = fontSmall;
     if (negocio.whatsapp) { ctx.fillText("WhatsApp: " + negocio.whatsapp, W / 2, cy); cy += smallLineH; }
-    ctx.fillText("mitienditaexpres.com", W / 2, cy); cy += smallLineH;
     ctx.fillText("¡Gracias por su compra!", W / 2, cy); cy += smallLineH;
     ctx.textAlign = "left";
 
@@ -256,7 +254,7 @@ const Printer = (() => {
       chunks.push(header, slice);
     }
 
-    chunks.push(new Uint8Array([0x1b, 0x64, 0x04])); // ESC d 4 -> avanza papel para poder cortar a mano
+    chunks.push(new Uint8Array([0x1b, 0x64, 0x02])); // ESC d 2 -> avanza lo mínimo para poder cortar a mano (menos papel)
 
     let total = 0;
     for (const c of chunks) total += c.length;
