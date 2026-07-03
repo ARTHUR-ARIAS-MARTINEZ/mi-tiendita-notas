@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#06070d">
+<title>Notas de Venta — Mi Tiendita Express</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <img src="icons/icon-192.png" alt="logo">
+  <div class="topbar-title">Notas de Venta</div>
+</div>
+
+<!-- ============ PANTALLA: NUEVA NOTA ============ -->
+<section class="screen active" id="screen-nota">
+  <div id="bt-warning" class="warning-banner hidden">
+    ⚠️ Este navegador no soporta Bluetooth directo. Abre esta app con <b>Chrome en Android</b> para poder imprimir.
+  </div>
+
+  <div class="card">
+    <h3>Cliente / tiendita</h3>
+    <div id="cliente-box"></div>
+  </div>
+
+  <div class="card">
+    <h3>Productos</h3>
+    <input type="text" id="producto-buscar" placeholder="🔍 Buscar producto…" class="search-row">
+    <div class="picker-grid" id="catalogo-picker"></div>
+  </div>
+
+  <div class="card">
+    <h3>Ticket actual</h3>
+    <div id="carrito-list"></div>
+    <div class="total-line"><span>TOTAL</span><span id="carrito-total">$0.00</span></div>
+    <button class="btn btn-primary" id="btn-generar-ticket" style="margin-top:12px" disabled>🖨️ Generar e Imprimir</button>
+    <div class="print-status" id="print-status"></div>
+    <div class="post-print-actions hidden" id="post-print-actions">
+      <button class="btn btn-secondary btn-sm" id="btn-reimprimir">🔁 Reimprimir</button>
+      <button class="btn btn-secondary btn-sm" id="btn-compartir">📤 Compartir texto</button>
+      <button class="btn btn-accent btn-sm" id="btn-nueva-nota">✅ Nueva nota</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANTALLA: CLIENTES ============ -->
+<section class="screen" id="screen-clientes">
+  <h2>Tienditas / Clientes</h2>
+  <input type="text" id="clientes-buscar" placeholder="🔍 Buscar tiendita…" class="search-row">
+  <button class="btn btn-primary" id="btn-nuevo-cliente" style="margin-bottom:12px">➕ Nueva tiendita</button>
+  <div id="clientes-list"></div>
+</section>
+
+<!-- ============ PANTALLA: HISTORIAL ============ -->
+<section class="screen" id="screen-historial">
+  <h2>Historial de notas</h2>
+  <input type="text" id="historial-buscar" placeholder="🔍 Buscar por cliente o folio…" class="search-row">
+  <div id="historial-list"></div>
+</section>
+
+<!-- ============ PANTALLA: AJUSTES ============ -->
+<section class="screen" id="screen-ajustes">
+  <h2>Ajustes</h2>
+
+  <div class="card">
+    <h3>Datos del negocio (aparecen en el ticket)</h3>
+    <form id="form-negocio">
+      <label class="form-label">Nombre del negocio</label>
+      <input type="text" id="aj-nombre">
+      <label class="form-label">WhatsApp</label>
+      <input type="text" id="aj-whatsapp">
+      <label class="form-label">Slogan</label>
+      <input type="text" id="aj-slogan">
+      <button class="btn btn-secondary btn-block" type="submit">Guardar</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Impresora Bluetooth (MP210)</h3>
+    <div class="form-hint" id="printer-name">Sin conectar</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-accent btn-sm" id="btn-conectar-impresora">🔗 Conectar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-prueba-impresion">🧪 Prueba de impresión</button>
+      <button class="btn btn-ghost btn-sm" id="btn-desconectar-impresora">Desconectar</button>
+    </div>
+    <div class="print-status" id="printer-status"></div>
+  </div>
+
+  <div class="card">
+    <h3>Catálogo de productos</h3>
+    <div id="productos-admin-list"></div>
+    <form id="form-nuevo-producto" style="display:grid;grid-template-columns:1fr 90px auto;gap:6px;margin-top:8px">
+      <input type="text" id="np-nombre" placeholder="Producto nuevo" style="margin-bottom:0">
+      <input type="number" id="np-precio" placeholder="Precio" min="0" step="0.01" style="margin-bottom:0">
+      <button class="btn btn-secondary btn-sm" type="submit">➕</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="switch-row">
+      <div>
+        <h3 style="margin-bottom:2px">Bloqueo con PIN</h3>
+        <div class="form-hint" style="margin:0">Pide un PIN al abrir la app.</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="pin-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Respaldo de datos</h3>
+    <div class="form-hint">Todo se guarda solo en este celular. Exporta seguido para no perder tu información.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      <button class="btn btn-secondary btn-sm" id="btn-exportar">⬇️ Exportar respaldo</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+        ⬆️ Importar respaldo
+        <input type="file" id="input-importar" accept="application/json" style="display:none">
+      </label>
+    </div>
+  </div>
+</section>
+
+<div class="nav-bottom">
+  <button class="nav-btn active" data-screen="nota"><span class="icon">🧾</span>Nota</button>
+  <button class="nav-btn" data-screen="clientes"><span class="icon">🏬</span>Tienditas</button>
+  <button class="nav-btn" data-screen="historial"><span class="icon">📜</span>Historial</button>
+  <button class="nav-btn" data-screen="ajustes"><span class="icon">⚙️</span>Ajustes</button>
+</div>
+
+<!-- ============ MODAL: CLIENTE ============ -->
+<div class="modal-overlay hidden" id="modal-cliente">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="mc-titulo">Nueva tiendita</h3>
+      <button class="modal-close" onclick="cerrarModalCliente()">✕</button>
+    </div>
+    <form id="form-cliente">
+      <input type="hidden" id="mc-id">
+      <label class="form-label">Nombre *</label>
+      <input type="text" id="mc-nombre" required>
+      <label class="form-label">Teléfono / WhatsApp</label>
+      <input type="tel" id="mc-telefono">
+      <label class="form-label">Dirección</label>
+      <input type="text" id="mc-direccion">
+      <label class="form-label">Notas</label>
+      <textarea id="mc-notas" rows="2"></textarea>
+      <button class="btn btn-primary" type="submit" style="margin-top:6px">Guardar tiendita</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ MODAL: DETALLE DE TICKET ============ -->
+<div class="modal-overlay hidden" id="modal-ticket">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Detalle</h3>
+      <button class="modal-close" onclick="cerrarModalTicket()">✕</button>
+    </div>
+    <div id="modal-ticket-detalle"></div>
+  </div>
+</div>
+
+<!-- ============ PIN LOCK ============ -->
+<div id="pin-lock" class="hidden">
+  <img src="icons/icon-192.png" alt="logo">
+  <h2>Notas de Venta</h2>
+  <form id="pin-form">
+    <input type="password" inputmode="numeric" pattern="[0-9]*" id="pin-input" placeholder="PIN">
+    <div class="pin-error" id="pin-error"></div>
+    <button class="btn btn-primary" type="submit" style="margin-top:8px">Entrar</button>
+  </form>
+</div>
+
+<div id="toast"></div>
+
+<script src="catalogo-default.js"></script>
+<script src="printer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

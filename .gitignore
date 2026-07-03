@@ -1,0 +1,8 @@
+# Archivos temporales / de sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
+
+# Los datos reales (clientes, ventas) NUNCA están en el código:
+# viven solo en el celular (localStorage). Aquí no hay nada privado.

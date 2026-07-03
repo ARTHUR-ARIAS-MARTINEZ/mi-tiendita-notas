@@ -1,0 +1,35 @@
+// Catálogo inicial de productos, tomado de tu Bitácora de Ventas Tienditas
+// (precio de venta = costo + utilidad, igual que en esa app).
+// Esto solo se usa la PRIMERA vez que abres la app en un celular nuevo.
+// Después, tú puedes agregar / editar / borrar productos desde "Ajustes > Productos"
+// y tus cambios se guardan en tu celular (no aquí).
+const CATALOGO_DEFAULT = [
+  { nombre: "Cable Tipo C CAB237", precio: 35 },
+  { nombre: "Cable iPhone CAB238", precio: 35 },
+  { nombre: "Cable V8 CAB236", precio: 50 },
+  { nombre: "Audífono Buytiti ST-216", precio: 35 },
+  { nombre: "Cargador Carga Lenta 1 Amp GAR063", precio: 35 },
+  { nombre: "Reloj Inteligente TB6323", precio: 210 },
+  { nombre: "Audífonos Inalámbricos TWS 1 Hora AUT205", precio: 220 },
+  { nombre: "Audífonos Clip 1 Hora AUT210", precio: 250 },
+  { nombre: "Power Bank con Cables 5000 mAh GAR261", precio: 160 },
+  { nombre: "Power Bank con Cables 10,000 mAh GAR148", precio: 220 },
+  { nombre: "Cable T.C Carga Rápida 3 Amp CAB251", precio: 50 },
+  { nombre: "Cargador Carro Doble USB 2 Amp GAR128", precio: 50 },
+  { nombre: "Soporte Magnético para Celular PJ097", precio: 50 },
+  { nombre: "Cable T.C - iPhone CAB258", precio: 50 },
+  { nombre: "Cable T.C - T.C CAB252", precio: 50 },
+  { nombre: "Cargador Doble T.C y USB GAR161", precio: 80 },
+  { nombre: "Mouse Inalámbrico RAT001", precio: 96 },
+  { nombre: "Audífonos Inalámbricos de Colores INPODS12", precio: 120 },
+  { nombre: "Audífonos Clip On (G-TIDE)", precio: 220 },
+  { nombre: "Cable HDMI 3 M", precio: 50 },
+  { nombre: "Tira Led de 5 Mts", precio: 105 },
+  { nombre: "Bocina BOC060", precio: 250 },
+  { nombre: "Bocina BOC062", precio: 180 },
+  { nombre: "Bocina BOC241", precio: 350 },
+  { nombre: "Bocina BOC242", precio: 260 },
+  { nombre: "Bocina BOC243", precio: 210 },
+  { nombre: "Bocina BOC244", precio: 220 },
+  { nombre: "Bocina BOC250", precio: 520 },
+];
