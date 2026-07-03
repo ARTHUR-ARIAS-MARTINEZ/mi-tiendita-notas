@@ -1,6 +1,6 @@
 // Service worker: cachea los archivos de la app para que abra sin internet
 // (los datos de clientes/tickets viven en localStorage, no aquí).
-const CACHE = "mte-notas-v1";
+const CACHE = "mte-notas-v2";
 const ASSETS = [
   "./",
   "index.html",

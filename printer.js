@@ -184,8 +184,8 @@ const Printer = (() => {
     ctx.textAlign = "center";
     ctx.fillText(negocio.nombre, W / 2, cy); cy += smallLineH + 4;
     ctx.font = fontSmall;
-    ctx.fillText("WhatsApp: " + negocio.whatsapp, W / 2, cy); cy += smallLineH;
-    ctx.fillText(negocio.slogan, W / 2, cy); cy += smallLineH;
+    if (negocio.whatsapp) { ctx.fillText("WhatsApp: " + negocio.whatsapp, W / 2, cy); cy += smallLineH; }
+    if (negocio.slogan) { ctx.fillText(negocio.slogan, W / 2, cy); cy += smallLineH; }
     ctx.fillText("¡Gracias por su compra!", W / 2, cy); cy += smallLineH;
     ctx.textAlign = "left";
 

@@ -113,7 +113,9 @@ function renderClienteBox() {
 function onClienteInput(value) {
   State.clienteNombreLibre = value;
   const match = State.clientes.find(c => c.nombre.toLowerCase() === value.trim().toLowerCase());
-  if (match) State.clienteSeleccionado = match.id;
+  // Si el texto ya no coincide con ninguna tiendita guardada, soltar la selección
+  // para que la nota no se quede pegada al cliente anterior.
+  State.clienteSeleccionado = match ? match.id : null;
 }
 function quitarCliente() {
   State.clienteSeleccionado = null;
