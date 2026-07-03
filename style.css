@@ -7,8 +7,9 @@
   --grad:linear-gradient(120deg,#FF0084 0%,#2BFF0F 100%);
   --font-h:'Outfit',system-ui,-apple-system,sans-serif;
 }
-html,body{height:100%}
-body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:78px;-webkit-font-smoothing:antialiased}
+/* NO fijar height:100% en el body: con box-sizing border-box, el contenido
+   largo se desbordaría por encima del padding y quedaría tapado por la barra. */
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 h2{font-family:var(--font-h);font-size:1.1rem;font-weight:700;margin-bottom:12px}
 h3{font-family:var(--font-h);font-size:.98rem;font-weight:600;margin-bottom:8px}
 
@@ -16,13 +17,15 @@ h3{font-family:var(--font-h);font-size:.98rem;font-weight:600;margin-bottom:8px}
 .topbar img{height:30px}
 .topbar-title{font-family:var(--font-h);font-weight:800;font-size:1rem;background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 
-.screen{display:none;padding:14px;max-width:640px;margin:0 auto}
+/* padding-bottom amplio: deja espacio para la barra fija de navegación
+   (incluye la "safe area" de celulares con barra de gestos). */
+.screen{display:none;padding:14px;padding-bottom:calc(110px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto}
 .screen.active{display:block;animation:fadeIn .25s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
 
-.nav-bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(6,7,13,.9);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100}
+.nav-bottom{position:fixed;bottom:0;left:0;right:0;background:rgba(6,7,13,.9);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:.62rem;font-weight:500}
 .nav-btn .icon{font-size:1.3rem;line-height:1}
 .nav-btn.active{color:var(--green)}
@@ -74,6 +77,7 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 
 .print-status{font-size:.78rem;color:var(--muted);margin-top:8px;min-height:1.2em}
 .post-print-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.post-print-actions .btn{flex:1 1 30%;min-width:96px}
 .hidden{display:none !important}
 
 /* Clientes */

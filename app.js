@@ -16,9 +16,9 @@ const STORE_KEYS = {
 };
 
 const DEFAULT_NEGOCIO = {
-  nombre: "Mi Tiendita Express",
+  nombre: "Mi Tiendita Expres",
   whatsapp: "449 185 5081",
-  slogan: "Compra Directo y Paga Menos",
+  slogan: "Compra Directo, Paga Menos",
 };
 
 function uid() {
@@ -53,6 +53,15 @@ if (!State.catalogo) {
   State.catalogo = CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio }));
   saveJSON(STORE_KEYS.catalogo, State.catalogo);
 }
+
+// Migración: corregir ortografía anterior en datos ya guardados en el celular,
+// sin tocar nada más que el usuario haya personalizado.
+(function migrarNegocio() {
+  let cambió = false;
+  if (State.negocio.nombre === "Mi Tiendita Express") { State.negocio.nombre = "Mi Tiendita Expres"; cambió = true; }
+  if (State.negocio.slogan === "Compra Directo y Paga Menos") { State.negocio.slogan = "Compra Directo, Paga Menos"; cambió = true; }
+  if (cambió) saveJSON(STORE_KEYS.negocio, State.negocio);
+})();
 
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
@@ -506,6 +515,36 @@ function exportarDatos() {
   URL.revokeObjectURL(url);
 }
 
+// Exporta la base de clientes como CSV (para vaciarla a la Bitácora de Ventas
+// Tienditas o abrirla en Excel). Universal: separado por comas, con encabezados.
+function exportarClientesCSV() {
+  if (State.clientes.length === 0) { toast("Aún no tienes tienditas guardadas."); return; }
+  const esc = (v) => {
+    const s = (v == null ? "" : String(v)).replace(/"/g, '""');
+    return /[",\n;]/.test(s) ? `"${s}"` : s;
+  };
+  const headers = ["Nombre", "WhatsApp", "Direccion", "Notas", "NumVentas", "TotalVendido", "FechaAlta"];
+  const rows = State.clientes.map(c => {
+    const ventas = State.tickets.filter(t => t.clienteId === c.id);
+    const total = ventas.reduce((a, t) => a + t.total, 0);
+    return [
+      c.nombre, c.telefono || "", c.direccion || "", c.notas || "",
+      ventas.length, total.toFixed(2),
+      c.creado ? new Date(c.creado).toLocaleDateString("es-MX") : "",
+    ].map(esc).join(",");
+  });
+  // BOM para que Excel respete los acentos
+  const csv = "﻿" + headers.join(",") + "\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "clientes-mi-tiendita-expres-" + new Date().toISOString().slice(0, 10) + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(State.clientes.length + " cliente(s) exportado(s).");
+}
+
 function importarDatos(ev) {
   const file = ev.target.files[0];
   if (!file) return;
@@ -611,6 +650,7 @@ async function initApp() {
   document.getElementById("btn-prueba-impresion").addEventListener("click", pruebaImpresion);
   document.getElementById("btn-desconectar-impresora").addEventListener("click", desconectarImpresora);
   document.getElementById("btn-exportar").addEventListener("click", exportarDatos);
+  document.getElementById("btn-exportar-clientes").addEventListener("click", exportarClientesCSV);
   document.getElementById("input-importar").addEventListener("change", importarDatos);
   document.getElementById("pin-toggle").addEventListener("change", togglePin);
 

@@ -65,47 +65,58 @@ const Printer = (() => {
     const fontLine = "22px monospace";
     const fontSmall = "18px monospace";
     const fontBold = "bold 24px monospace";
+    const fontName = "bold 30px monospace";  // nombre del negocio (encabezado)
     const fontTotal = "bold 30px monospace";
+    const lineH = 26;
+    const smallLineH = 22;
 
+    // Logo: SOLO el carrito, en negro para máximo contraste en papel térmico.
+    // El nombre del negocio va como texto (así respeta la ortografía y sale nítido).
     let logoImg = null;
-    try { logoImg = await loadImage("icons/logo-cropped.png"); } catch (e) { log("sin logo", e); }
+    try { logoImg = await loadImage("icons/cart-black.png"); } catch (e) { log("sin logo", e); }
     let logoH = 0, logoW = 0;
     if (logoImg) {
-      logoW = Math.min(innerW, 300);
+      logoW = Math.min(innerW, 150);
       logoH = Math.round(logoImg.height * (logoW / logoImg.width));
     }
 
-    const lineas = ticket.items.map(it => {
-      const nombre = it.nombre;
-      const cant = it.cantidad;
-      const precio = it.precio;
-      const importe = cant * precio;
-      return { nombre, cant, precio, importe };
-    });
+    const lineas = ticket.items.map(it => ({
+      nombre: it.nombre, cant: it.cantidad, precio: it.precio, importe: it.cantidad * it.precio,
+    }));
 
+    // Cliente: nombre completo, con salto de línea si es largo (para que NO se corte)
+    const clienteTxt = "Cliente: " + (ticket.cliente || "Público en general");
+    measure.font = fontBold;
+    const clienteLines = wrapText(measure, clienteTxt, innerW);
+
+    // Filas que ocupan los productos (wrap del nombre)
     measure.font = fontLine;
-    // Estimamos cuántas líneas de texto ocupará cada producto (wrap del nombre)
     let itemRows = 0;
     for (const it of lineas) {
-      // Mismo ancho de wrap que se usa al dibujar (innerW - 40, por la columna "Nx")
       const nombreLines = wrapText(measure, it.nombre, innerW - 40);
-      itemRows += nombreLines.length + 1; // +1 para la fila de cant/precio/importe
+      itemRows += nombreLines.length + 1; // +1 fila de precio/importe
     }
 
-    const lineH = 26;
-    const smallLineH = 22;
+    // --- Alto total (se calcula sumando cada bloque que sí se dibuja) ---
     let y = pad;
-    y += logoH + (logoImg ? 14 : 0);
-    y += smallLineH * 3 + 4; // fecha, folio, cliente (la última línea es bold y usa +4 extra)
-    y += 10; // separador
-    y += lineH; // encabezado tabla
-    y += 6;
-    y += itemRows * lineH;
-    y += 10; // separador
-    y += 36; // total
-    y += 10; // separador
-    y += smallLineH * 4; // footer (nombre, whatsapp, gracias, slogan)
-    y += 50; // margen final de seguridad + espacio para poder cortar el papel a mano
+    if (logoImg) y += logoH + 10;
+    y += 34;                                    // nombre del negocio
+    if (negocio.slogan) y += smallLineH;        // slogan
+    y += 8;
+    y += smallLineH;                            // fecha
+    y += clienteLines.length * (smallLineH + 2);// cliente (1 o más líneas)
+    y += 8;
+    y += lineH;                                 // separador
+    y += lineH + 6;                             // encabezado tabla
+    y += itemRows * lineH;                      // productos
+    y += lineH;                                 // separador
+    y += 36;                                    // total
+    y += lineH;                                 // separador
+    y += 30;                                    // nombre (footer)
+    if (negocio.whatsapp) y += smallLineH;      // whatsapp
+    y += smallLineH;                            // sitio web
+    y += smallLineH;                            // gracias
+    y += 50;                                    // margen final para cortar el papel
 
     const canvas = document.createElement("canvas");
     canvas.width = W;
@@ -118,20 +129,30 @@ const Printer = (() => {
 
     let cy = pad;
 
+    // --- Encabezado: carrito + nombre + slogan (centrados) ---
     if (logoImg) {
       ctx.drawImage(logoImg, (W - logoW) / 2, cy, logoW, logoH);
-      cy += logoH + 14;
+      cy += logoH + 10;
     }
+    ctx.textAlign = "center";
+    ctx.font = fontName;
+    ctx.fillText(negocio.nombre, W / 2, cy); cy += 34;
+    if (negocio.slogan) {
+      ctx.font = fontSmall;
+      ctx.fillText(negocio.slogan, W / 2, cy); cy += smallLineH;
+    }
+    cy += 8;
 
-    ctx.font = fontSmall;
+    // --- Fecha y cliente (a la izquierda) ---
     ctx.textAlign = "left";
+    ctx.font = fontSmall;
     const fecha = new Date(ticket.fecha);
     const fechaStr = fecha.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) +
       "  " + fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
     ctx.fillText("Fecha: " + fechaStr, pad, cy); cy += smallLineH;
-    ctx.fillText("Nota: #" + ticket.folio, pad, cy); cy += smallLineH;
     ctx.font = fontBold;
-    ctx.fillText("Cliente: " + (ticket.cliente || "Público en general"), pad, cy); cy += smallLineH + 4;
+    for (const ln of clienteLines) { ctx.fillText(ln, pad, cy); cy += smallLineH + 2; }
+    cy += 8;
 
     // separador
     ctx.font = fontLine;
@@ -143,11 +164,11 @@ const Printer = (() => {
     ctx.textAlign = "right";
     ctx.fillText("IMPORTE", W - pad, cy);
     ctx.textAlign = "left";
-    cy += lineH;
+    cy += lineH + 6;
 
     ctx.font = fontLine;
     for (const it of lineas) {
-      // Línea(s) con el nombre a todo lo ancho (no comparte renglón con el importe)
+      // Nombre a todo lo ancho (no comparte renglón con el importe)
       const nombreLines = wrapText(ctx, it.nombre, innerW - 40);
       ctx.font = fontLine;
       ctx.fillText(String(it.cant) + "x", pad, cy);
@@ -157,7 +178,7 @@ const Printer = (() => {
         ctx.fillText(nombreLines[i], pad + 40, cy);
         cy += lineH;
       }
-      // Renglón: precio unitario a la izquierda, importe (en negrita) a la derecha
+      // Precio unitario a la izquierda, importe (negrita) a la derecha
       ctx.font = fontSmall;
       ctx.fillText("  $" + it.precio.toFixed(2) + " c/u", pad + 40, cy);
       ctx.textAlign = "right";
@@ -180,12 +201,13 @@ const Printer = (() => {
     ctx.font = fontLine;
     ctx.fillText("-".repeat(32), pad, cy); cy += lineH;
 
-    ctx.font = fontBold;
+    // --- Pie: nombre + WhatsApp + sitio web + gracias ---
     ctx.textAlign = "center";
-    ctx.fillText(negocio.nombre, W / 2, cy); cy += smallLineH + 4;
+    ctx.font = fontBold;
+    ctx.fillText(negocio.nombre, W / 2, cy); cy += 30;
     ctx.font = fontSmall;
     if (negocio.whatsapp) { ctx.fillText("WhatsApp: " + negocio.whatsapp, W / 2, cy); cy += smallLineH; }
-    if (negocio.slogan) { ctx.fillText(negocio.slogan, W / 2, cy); cy += smallLineH; }
+    ctx.fillText("mitienditaexpres.com", W / 2, cy); cy += smallLineH;
     ctx.fillText("¡Gracias por su compra!", W / 2, cy); cy += smallLineH;
     ctx.textAlign = "left";
 
@@ -363,7 +385,6 @@ const Printer = (() => {
     L.push("-".repeat(32));
     const fecha = new Date(ticket.fecha);
     L.push("Fecha: " + fecha.toLocaleDateString("es-MX") + " " + fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }));
-    L.push("Nota: #" + ticket.folio);
     L.push("Cliente: " + (ticket.cliente || "Público en general"));
     L.push("-".repeat(32));
     for (const it of ticket.items) {
@@ -373,7 +394,8 @@ const Printer = (() => {
     L.push("-".repeat(32));
     L.push("TOTAL: $" + ticket.total.toFixed(2));
     L.push("-".repeat(32));
-    L.push("WhatsApp: " + negocio.whatsapp);
+    if (negocio.whatsapp) L.push("WhatsApp: " + negocio.whatsapp);
+    L.push("mitienditaexpres.com");
     L.push("¡Gracias por su compra!");
     return L.join("\n");
   }

@@ -1,6 +1,6 @@
 // Service worker: cachea los archivos de la app para que abra sin internet
 // (los datos de clientes/tickets viven en localStorage, no aquí).
-const CACHE = "mte-notas-v2";
+const CACHE = "mte-notas-v3";
 const ASSETS = [
   "./",
   "index.html",
@@ -11,7 +11,8 @@ const ASSETS = [
   "manifest.json",
   "icons/icon-192.png",
   "icons/icon-512.png",
-  "icons/logo-cropped.png",
+  "icons/cart.png",
+  "icons/cart-black.png",
 ];
 
 self.addEventListener("install", (ev) => {

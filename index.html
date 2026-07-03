@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#06070d">
-<title>Notas de Venta — Mi Tiendita Express</title>
+<title>Notas de Venta — Mi Tiendita Expres</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -13,7 +13,7 @@
 <body>
 
 <div class="topbar">
-  <img src="icons/icon-192.png" alt="logo">
+  <img src="icons/cart.png" alt="logo">
   <div class="topbar-title">Notas de Venta</div>
 </div>
 
@@ -125,6 +125,14 @@
       </label>
     </div>
   </div>
+
+  <div class="card">
+    <h3>Base de datos de clientes</h3>
+    <div class="form-hint">Descarga tus tienditas (nombre, WhatsApp, dirección) en un archivo CSV para pasarlas a tu Bitácora de Ventas o abrirlas en Excel.</div>
+    <div style="margin-top:6px">
+      <button class="btn btn-accent btn-sm" id="btn-exportar-clientes">📇 Exportar clientes (CSV)</button>
+    </div>
+  </div>
 </section>
 
 <div class="nav-bottom">
@@ -169,7 +177,7 @@
 
 <!-- ============ PIN LOCK ============ -->
 <div id="pin-lock" class="hidden">
-  <img src="icons/icon-192.png" alt="logo">
+  <img src="icons/cart.png" alt="logo">
   <h2>Notas de Venta</h2>
   <form id="pin-form">
     <input type="password" inputmode="numeric" pattern="[0-9]*" id="pin-input" placeholder="PIN">
