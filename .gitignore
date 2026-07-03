@@ -6,3 +6,8 @@ desktop.ini
 
 # Los datos reales (clientes, ventas) NUNCA están en el código:
 # viven solo en el celular (localStorage). Aquí no hay nada privado.
+
+# Nunca subir llaves/tokens
+gh_token.txt
+*.token
+.gh_token
