@@ -83,6 +83,28 @@ if (!State.catalogo) {
   localStorage.setItem(FLAG, "1");
 })();
 
+// Migración: corrige el código del Audífono Buytiti (ST-216 -> EZ-165) y el
+// precio del Audífonos Clip On G-TIDE ($220 -> $250) en catálogos ya
+// guardados en el celular. Se ejecuta una sola vez.
+(function corregirBuytitiYGTide() {
+  const FLAG = "mte_migr_catalogo_2026_07b";
+  if (localStorage.getItem(FLAG)) return;
+  if (State.catalogo) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (p.nombre.trim().toLowerCase() === "audífono buytiti st-216") {
+        p.nombre = "Audífono Buytiti EZ-165";
+        cambió = true;
+      } else if (p.nombre.trim().toLowerCase() === "audífonos clip on (g-tide)" && p.precio === 220) {
+        p.precio = 250;
+        cambió = true;
+      }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
