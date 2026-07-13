@@ -63,6 +63,26 @@ if (!State.catalogo) {
   if (cambió) saveJSON(STORE_KEYS.negocio, State.negocio);
 })();
 
+// Migración: agrega al catálogo ya guardado en el celular los productos nuevos
+// del catálogo por defecto que aún no existan (comparando por nombre), sin
+// modificar ni duplicar los que ya estén. Se ejecuta una sola vez.
+(function agregarProductosFaltantes() {
+  const FLAG = "mte_migr_catalogo_2026_07";
+  if (localStorage.getItem(FLAG)) return;
+  if (State.catalogo) {
+    const existentes = new Set(State.catalogo.map(p => p.nombre.trim().toLowerCase()));
+    let cambió = false;
+    for (const p of CATALOGO_DEFAULT) {
+      if (!existentes.has(p.nombre.trim().toLowerCase())) {
+        State.catalogo.push({ id: uid(), nombre: p.nombre, precio: p.precio });
+        cambió = true;
+      }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }

@@ -32,4 +32,10 @@ const CATALOGO_DEFAULT = [
   { nombre: "Bocina BOC243", precio: 210 },
   { nombre: "Bocina BOC244", precio: 220 },
   { nombre: "Bocina BOC250", precio: 520 },
+  { nombre: "Audífonos Earpods (para iPhone)", precio: 60 },
+  { nombre: "Audífonos (para T.C.) AUT125", precio: 60 },
+  { nombre: "Cargador Con Cable T.C. a T.C. GAR153", precio: 80 },
+  { nombre: "Cargador Con Cable T.C. a iPhone GAR154", precio: 80 },
+  { nombre: "Bocina Inalámbrica para Bicicleta (Min. 5 pz)", precio: 210 },
+  { nombre: "Audífonos Deportivos (Min. 5 pz) AC01", precio: 210 },
 ];
