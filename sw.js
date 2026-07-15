@@ -1,6 +1,10 @@
 // Service worker: cachea los archivos de la app para que abra sin internet
 // (los datos de clientes/tickets viven en localStorage, no aquí).
-const CACHE = "mte-notas-v6";
+//
+// Estrategia "red primero": cuando hay internet, siempre se trae la versión
+// más nueva de cada archivo (así los cambios se ven de inmediato); si no hay
+// internet o la señal está muy lenta, usa la copia guardada en caché.
+const CACHE = "mte-notas-v7";
 const ASSETS = [
   "./",
   "index.html",
@@ -26,15 +30,43 @@ self.addEventListener("activate", (ev) => {
   );
 });
 
+// Permite que la página le pida al SW nuevo que tome control de inmediato.
+self.addEventListener("message", (ev) => {
+  if (ev.data && ev.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+function fetchConTimeout(request, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("timeout")), ms);
+    fetch(request).then(
+      (r) => { clearTimeout(t); resolve(r); },
+      (e) => { clearTimeout(t); reject(e); }
+    );
+  });
+}
+
 self.addEventListener("fetch", (ev) => {
   if (ev.request.method !== "GET") return;
-  ev.respondWith(
-    caches.match(ev.request).then((cached) => {
-      const network = fetch(ev.request).then((resp) => {
-        if (resp.ok) caches.open(CACHE).then((c) => c.put(ev.request, resp.clone()));
-        return resp;
-      }).catch(() => cached);
-      return cached || network;
-    })
-  );
+  const url = new URL(ev.request.url);
+  // Dejar pasar peticiones a otros dominios (p. ej. las fuentes de Google).
+  if (url.origin !== location.origin) return;
+
+  ev.respondWith((async () => {
+    const cache = await caches.open(CACHE);
+    try {
+      // Red primero (con límite de tiempo para no colgarse con mala señal).
+      const resp = await fetchConTimeout(ev.request, 4000);
+      if (resp && resp.ok) cache.put(ev.request, resp.clone());
+      return resp;
+    } catch (e) {
+      // Sin red (o muy lenta): usar lo guardado.
+      const cached = await cache.match(ev.request);
+      if (cached) return cached;
+      if (ev.request.mode === "navigate") {
+        const home = (await cache.match("index.html")) || (await cache.match("./"));
+        if (home) return home;
+      }
+      throw e;
+    }
+  })());
 });

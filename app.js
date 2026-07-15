@@ -5,6 +5,10 @@
 // a ningún servidor — por eso no hay nada que "hackear" en línea.
 // ===================================================================
 
+// Versión visible de la app (para confirmar que llegó la última actualización).
+// Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
+const APP_VERSION = "v7 · 15 jul 2026";
+
 const STORE_KEYS = {
   negocio: "mte_negocio",
   catalogo: "mte_catalogo",
@@ -125,6 +129,31 @@ if (!State.catalogo) {
       }
     }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: quita del catálogo guardado los productos con NOMBRE repetido,
+// dejando solo el primero. Corrige el caso en que una versión anterior de la
+// app duplicó "Audífono Buytiti EZ-165" (por haber renombrado y agregado
+// productos en el orden equivocado). Corre AL FINAL, después de los renombres,
+// para que los nombres ya normalizados se comparen bien. Se ejecuta una sola vez.
+(function quitarProductosDuplicados() {
+  const FLAG = "mte_migr_catalogo_2026_07d";
+  if (localStorage.getItem(FLAG)) return;
+  if (State.catalogo) {
+    const vistos = new Set();
+    const sinDuplicados = [];
+    for (const p of State.catalogo) {
+      const clave = p.nombre.trim().toLowerCase();
+      if (vistos.has(clave)) continue;
+      vistos.add(clave);
+      sinDuplicados.push(p);
+    }
+    if (sinDuplicados.length !== State.catalogo.length) {
+      State.catalogo = sinDuplicados;
+      saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    }
   }
   localStorage.setItem(FLAG, "1");
 })();
@@ -815,6 +844,32 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
 }
 
+// Busca manualmente una versión nueva. Si la encuentra, la aplica y la app
+// se recarga sola (por el "controllerchange"). Si no, avisa que ya está al día.
+function buscarActualizacion() {
+  if (!("serviceWorker" in navigator)) {
+    toast("Actualización no disponible en este navegador.");
+    return;
+  }
+  toast("Buscando actualización…");
+  navigator.serviceWorker.getRegistration().then((reg) => {
+    if (!reg) { toast("Ya tienes la última versión."); return; }
+    return reg.update().then(() => {
+      const nuevo = reg.installing || reg.waiting;
+      if (nuevo) {
+        // Hay una versión nueva descargándose o lista: activarla.
+        if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        nuevo.addEventListener?.("statechange", () => {
+          if (nuevo.state === "installed") nuevo.postMessage({ type: "SKIP_WAITING" });
+        });
+        toast("Actualizando…");
+      } else {
+        toast("Ya tienes la última versión (" + APP_VERSION + ").");
+      }
+    });
+  }).catch(() => toast("No se pudo buscar actualización."));
+}
+
 // ---------- Arranque ----------
 
 async function initApp() {
@@ -843,10 +898,37 @@ async function initApp() {
     document.getElementById("bt-warning").classList.remove("hidden");
   }
 
+  const versionEl = document.getElementById("app-version");
+  if (versionEl) versionEl.textContent = "Versión " + APP_VERSION;
+  const btnActualizar = document.getElementById("btn-buscar-actualizacion");
+  if (btnActualizar) btnActualizar.addEventListener("click", buscarActualizacion);
+
   showScreen("nota");
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    // Cuando el service worker nuevo toma el control, recargar UNA vez para
+    // que se vea de inmediato la versión más reciente de la app.
+    let yaRecargado = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (yaRecargado) return;
+      yaRecargado = true;
+      window.location.reload();
+    });
+
+    navigator.serviceWorker.register("sw.js").then((reg) => {
+      // Buscar actualizaciones cada vez que se abre la app.
+      reg.update();
+      reg.addEventListener("updatefound", () => {
+        const nuevo = reg.installing;
+        if (!nuevo) return;
+        nuevo.addEventListener("statechange", () => {
+          // Hay una versión nueva lista y ya hay una controlando: activarla.
+          if (nuevo.state === "installed" && navigator.serviceWorker.controller) {
+            nuevo.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+    }).catch(() => {});
   }
 }
 
