@@ -8,7 +8,7 @@ const CATALOGO_DEFAULT = [
   { nombre: "Cable iPhone CAB238", precio: 35 },
   { nombre: "Cable V8 CAB236", precio: 50 },
   { nombre: "Audífono Buytiti EZ-165", precio: 35 },
-  { nombre: "Cargador Carga Lenta 1 Amp GAR063", precio: 35 },
+  { nombre: "Cargador de Carga Media 2 Amp GAR063", precio: 35 },
   { nombre: "Reloj Inteligente TB6323", precio: 210 },
   { nombre: "Audífonos Inalámbricos TWS 1 Hora AUT205", precio: 220 },
   { nombre: "Audífonos Clip 1 Hora AUT210", precio: 250 },

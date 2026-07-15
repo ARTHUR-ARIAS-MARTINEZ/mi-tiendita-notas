@@ -63,6 +63,52 @@ if (!State.catalogo) {
   if (cambió) saveJSON(STORE_KEYS.negocio, State.negocio);
 })();
 
+// Migración: corrige el código del Audífono Buytiti (ST-216 -> EZ-165) y el
+// precio del Audífonos Clip On G-TIDE ($220 -> $250) en catálogos ya
+// guardados en el celular. Se ejecuta una sola vez.
+// (Debe correr ANTES de "agregarProductosFaltantes": si un celular nunca
+// abrió la app desde antes de este cambio, renombra primero para que esa
+// migración no piense que "Audífono Buytiti EZ-165" es un producto nuevo
+// y lo duplique.)
+(function corregirBuytitiYGTide() {
+  const FLAG = "mte_migr_catalogo_2026_07b";
+  if (localStorage.getItem(FLAG)) return;
+  if (State.catalogo) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (p.nombre.trim().toLowerCase() === "audífono buytiti st-216") {
+        p.nombre = "Audífono Buytiti EZ-165";
+        cambió = true;
+      } else if (p.nombre.trim().toLowerCase() === "audífonos clip on (g-tide)" && p.precio === 220) {
+        p.precio = 250;
+        cambió = true;
+      }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: renombra "Cargador Carga Lenta 1 Amp GAR063" a
+// "Cargador de Carga Media 2 Amp GAR063" en catálogos ya guardados en el
+// celular. Se ejecuta una sola vez. (También debe correr antes de
+// "agregarProductosFaltantes", por la misma razón que la de arriba.)
+(function renombrarCargadorGAR063() {
+  const FLAG = "mte_migr_catalogo_2026_07c";
+  if (localStorage.getItem(FLAG)) return;
+  if (State.catalogo) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (p.nombre.trim().toLowerCase() === "cargador carga lenta 1 amp gar063") {
+        p.nombre = "Cargador de Carga Media 2 Amp GAR063";
+        cambió = true;
+      }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 // Migración: agrega al catálogo ya guardado en el celular los productos nuevos
 // del catálogo por defecto que aún no existan (comparando por nombre), sin
 // modificar ni duplicar los que ya estén. Se ejecuta una sola vez.
@@ -75,28 +121,6 @@ if (!State.catalogo) {
     for (const p of CATALOGO_DEFAULT) {
       if (!existentes.has(p.nombre.trim().toLowerCase())) {
         State.catalogo.push({ id: uid(), nombre: p.nombre, precio: p.precio });
-        cambió = true;
-      }
-    }
-    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
-  }
-  localStorage.setItem(FLAG, "1");
-})();
-
-// Migración: corrige el código del Audífono Buytiti (ST-216 -> EZ-165) y el
-// precio del Audífonos Clip On G-TIDE ($220 -> $250) en catálogos ya
-// guardados en el celular. Se ejecuta una sola vez.
-(function corregirBuytitiYGTide() {
-  const FLAG = "mte_migr_catalogo_2026_07b";
-  if (localStorage.getItem(FLAG)) return;
-  if (State.catalogo) {
-    let cambió = false;
-    for (const p of State.catalogo) {
-      if (p.nombre.trim().toLowerCase() === "audífono buytiti st-216") {
-        p.nombre = "Audífono Buytiti EZ-165";
-        cambió = true;
-      } else if (p.nombre.trim().toLowerCase() === "audífonos clip on (g-tide)" && p.precio === 220) {
-        p.precio = 250;
         cambió = true;
       }
     }
@@ -174,16 +198,36 @@ function quitarCliente() {
   renderClienteBox();
 }
 
+// Códigos de los productos que se destacan como "principales" arriba del
+// catálogo en la pantalla de Nota (los de mayor venta).
+const CODIGOS_PRODUCTOS_PRINCIPALES = ["CAB237", "CAB238", "EZ-165", "GAR063"];
+function esProductoPrincipal(nombre) {
+  const n = nombre.toUpperCase();
+  return CODIGOS_PRODUCTOS_PRINCIPALES.some(cod => n.includes(cod));
+}
+
 function renderCatalogoPicker(filter) {
   const cont = document.getElementById("catalogo-picker");
   const f = (filter || document.getElementById("producto-buscar")?.value || "").trim().toLowerCase();
   const productos = State.catalogo.filter(p => !f || p.nombre.toLowerCase().includes(f));
-  cont.innerHTML = productos.map(p => `
-    <div class="prod-pick" onclick="agregarAlCarrito('${p.id}')">
+  if (productos.length === 0) {
+    cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
+    return;
+  }
+  const principales = productos.filter(p => esProductoPrincipal(p.nombre));
+  const resto = productos.filter(p => !esProductoPrincipal(p.nombre));
+  const tarjeta = (p, principal) => `
+    <div class="prod-pick${principal ? " prod-pick-principal" : ""}" onclick="agregarAlCarrito('${p.id}')">
+      ${principal ? `<div class="prod-pick-badge">⭐ Principal</div>` : ""}
       <div class="prod-pick-nombre">${escapeHtml(p.nombre)}</div>
       <div class="prod-pick-precio">${fmtMoney(p.precio)}</div>
     </div>
-  `).join("") || `<div class="empty-hint">Sin productos que coincidan.</div>`;
+  `;
+  cont.innerHTML =
+    (principales.length ? `<div class="picker-section-label">⭐ Principales</div>` : "") +
+    principales.map(p => tarjeta(p, true)).join("") +
+    (principales.length && resto.length ? `<div class="picker-section-label">Todos los productos</div>` : "") +
+    resto.map(p => tarjeta(p, false)).join("");
 }
 
 function agregarAlCarrito(prodId) {
@@ -396,6 +440,47 @@ function borrarCliente(id) {
 // PANTALLA: Historial
 // ===================================================================
 
+// Días (por su clave "YYYY-MM-DD") actualmente desplegados en el historial.
+const historialExpandido = new Set();
+
+function dayKeyFromDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Lunes (00:00 hora local) de la semana que contiene la fecha dada.
+function lunesDeSemana(d) {
+  const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = nd.getDay(); // 0=domingo ... 6=sábado
+  const diff = dow === 0 ? -6 : 1 - dow;
+  nd.setDate(nd.getDate() + diff);
+  return nd;
+}
+
+function formatDiaLabel(d) {
+  const hoy = new Date();
+  const ayer = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - 1);
+  let base = d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  base = base.charAt(0).toUpperCase() + base.slice(1);
+  if (dayKeyFromDate(d) === dayKeyFromDate(hoy)) return `Hoy · ${base}`;
+  if (dayKeyFromDate(d) === dayKeyFromDate(ayer)) return `Ayer · ${base}`;
+  return base;
+}
+
+function formatSemanaLabel(lunes) {
+  const domingo = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6);
+  const opts = { day: "numeric", month: "short" };
+  return `Semana del ${lunes.toLocaleDateString("es-MX", opts)} al ${domingo.toLocaleDateString("es-MX", opts)}`;
+}
+
+function toggleDiaHistorial(dayKey) {
+  if (historialExpandido.has(dayKey)) historialExpandido.delete(dayKey);
+  else historialExpandido.add(dayKey);
+  renderHistorial();
+}
+
 function renderHistorial() {
   const cont = document.getElementById("historial-list");
   const f = (document.getElementById("historial-buscar")?.value || "").trim().toLowerCase();
@@ -404,15 +489,73 @@ function renderHistorial() {
     cont.innerHTML = `<div class="empty-hint">Todavía no hay notas generadas.</div>`;
     return;
   }
-  cont.innerHTML = list.map(t => `
-    <div class="card historial-row" onclick="verTicket('${t.id}')">
-      <div>
-        <div class="historial-row-top">#${t.folio} · ${escapeHtml(t.cliente || "Público en general")}</div>
-        <div class="historial-row-sub">${new Date(t.fecha).toLocaleString("es-MX")} · ${t.items.length} producto(s)</div>
+
+  // Agrupar ventas por día.
+  const porDia = new Map(); // dayKey -> { fecha: Date, tickets: [] }
+  for (const t of list) {
+    const d = new Date(t.fecha);
+    const key = dayKeyFromDate(d);
+    if (!porDia.has(key)) porDia.set(key, { fecha: d, tickets: [] });
+    porDia.get(key).tickets.push(t);
+  }
+
+  // Agrupar los días por semana (lunes a domingo).
+  const porSemana = new Map(); // weekKey -> { lunes: Date, dias: [] }
+  for (const [dayKey, grupo] of porDia) {
+    const lunes = lunesDeSemana(grupo.fecha);
+    const weekKey = dayKeyFromDate(lunes);
+    if (!porSemana.has(weekKey)) porSemana.set(weekKey, { lunes, dias: [] });
+    porSemana.get(weekKey).dias.push({ key: dayKey, fecha: grupo.fecha, tickets: grupo.tickets });
+  }
+
+  const semanas = [...porSemana.values()].sort((a, b) => b.lunes - a.lunes);
+
+  cont.innerHTML = semanas.map(sem => {
+    const dias = sem.dias.sort((a, b) => b.fecha - a.fecha);
+    const totalSemana = dias.reduce((acc, dia) => acc + dia.tickets.reduce((s, t) => s + t.total, 0), 0);
+    return `
+      <div class="semana-grupo">
+        <div class="semana-header">
+          <span>${formatSemanaLabel(sem.lunes)}</span>
+          <span class="semana-total">${fmtMoney(totalSemana)}</span>
+        </div>
+        ${dias.map(dia => renderDiaGrupoHistorial(dia)).join("")}
       </div>
-      <div class="historial-row-total">${fmtMoney(t.total)}</div>
+    `;
+  }).join("");
+}
+
+function renderDiaGrupoHistorial(dia) {
+  const totalDia = dia.tickets.reduce((a, t) => a + t.total, 0);
+  const abierto = historialExpandido.has(dia.key);
+  return `
+    <div class="card dia-grupo">
+      <button type="button" class="dia-grupo-btn" onclick="toggleDiaHistorial('${dia.key}')">
+        <div>
+          <div class="dia-grupo-fecha">${formatDiaLabel(dia.fecha)}</div>
+          <div class="dia-grupo-sub">${dia.tickets.length} venta(s)</div>
+        </div>
+        <div class="dia-grupo-right">
+          <span class="dia-grupo-total">${fmtMoney(totalDia)}</span>
+          <span class="dia-grupo-caret">${abierto ? "▲" : "▼"}</span>
+        </div>
+      </button>
+      ${abierto ? `
+        <div class="dia-grupo-detalle">
+          <div class="total-line"><span>Total del día</span><span>${fmtMoney(totalDia)}</span></div>
+          ${dia.tickets.map(t => `
+            <div class="card historial-row" onclick="verTicket('${t.id}')">
+              <div>
+                <div class="historial-row-top">#${t.folio} · ${escapeHtml(t.cliente || "Público en general")}</div>
+                <div class="historial-row-sub">${new Date(t.fecha).toLocaleString("es-MX")} · ${t.items.length} producto(s)</div>
+              </div>
+              <div class="historial-row-total">${fmtMoney(t.total)}</div>
+            </div>
+          `).join("")}
+        </div>
+      ` : ""}
     </div>
-  `).join("");
+  `;
 }
 
 function verTicket(id) {
