@@ -94,11 +94,13 @@
   <div class="card">
     <h3>Catálogo de productos</h3>
     <div id="productos-admin-list"></div>
-    <form id="form-nuevo-producto" style="display:grid;grid-template-columns:1fr 90px auto;gap:6px;margin-top:8px">
+    <form id="form-nuevo-producto" style="display:grid;grid-template-columns:1fr 78px 78px auto;gap:6px;margin-top:8px">
       <input type="text" id="np-nombre" placeholder="Producto nuevo" style="margin-bottom:0">
+      <input type="number" id="np-costo" placeholder="Costo" min="0" step="0.01" style="margin-bottom:0">
       <input type="number" id="np-precio" placeholder="Precio" min="0" step="0.01" style="margin-bottom:0">
       <button class="btn btn-secondary btn-sm" type="submit">➕</button>
     </form>
+    <div class="form-hint" style="margin-top:6px">El <b>costo</b> es lo que tú pagas; el <b>precio</b> es lo que te paga la tiendita. La diferencia es tu utilidad.</div>
   </div>
 
   <div class="card">
@@ -131,6 +133,20 @@
     <div class="form-hint">Descarga tus tienditas (nombre, WhatsApp, dirección) en un archivo CSV para pasarlas a tu Bitácora de Ventas o abrirlas en Excel.</div>
     <div style="margin-top:6px">
       <button class="btn btn-accent btn-sm" id="btn-exportar-clientes">📇 Exportar clientes (CSV)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Reporte de ventas (PDF)</h3>
+    <div class="form-hint">Detalle venta por venta, con los productos de cada una, tu costo, el precio al cliente y tu utilidad bruta.</div>
+    <label class="form-label" style="margin-top:8px">Periodo</label>
+    <select id="reporte-periodo" style="width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.875rem;font-family:inherit;margin-bottom:8px">
+      <option value="todo">Todas las ventas</option>
+      <option value="semana">Esta semana (lunes a domingo)</option>
+      <option value="mes">Este mes</option>
+    </select>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-accent btn-sm" id="btn-reporte-pdf">📄 Generar PDF</button>
     </div>
   </div>
 
@@ -195,6 +211,9 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- Hoja del reporte de ventas. Solo se ve al imprimir / guardar como PDF. -->
+<div id="reporte-print"></div>
 
 <script src="catalogo-default.js"></script>
 <script src="printer.js"></script>

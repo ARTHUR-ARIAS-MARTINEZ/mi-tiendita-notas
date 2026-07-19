@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v9 · 19 jul 2026";
+const APP_VERSION = "v10 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -60,7 +60,15 @@ const State = {
 // Aquí se REPARA en vez de fallar: nunca se descarta información utilizable.
 
 function catalogoDeFabrica() {
-  return CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio }));
+  return CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio, costo: p.costo ?? null }));
+}
+
+// El costo puede no estar capturado todavía: en ese caso vale null (no 0, para
+// no inflar la utilidad en los reportes).
+function normalizarCosto(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
 }
 
 // Devuelve { lista, reparado } o null si el valor ni siquiera es una lista.
@@ -74,8 +82,9 @@ function sanearCatalogo(valor) {
     const precioNum = Number(item.precio);
     const precio = Number.isFinite(precioNum) ? precioNum : 0;
     const id = (typeof item.id === "string" && item.id) ? item.id : uid();
-    if (nombre !== item.nombre || precio !== item.precio || id !== item.id) reparado = true;
-    return { ...item, id, nombre, precio };
+    const costo = normalizarCosto(item.costo);
+    if (nombre !== item.nombre || precio !== item.precio || id !== item.id || costo !== (item.costo ?? null)) reparado = true;
+    return { ...item, id, nombre, precio, costo };
   });
   return { lista, reparado };
 }
@@ -208,6 +217,31 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// Migración: agrega el COSTO a los productos del catálogo guardado, tomándolo
+// del catálogo de fábrica (que a su vez viene de tu Bitácora de Ventas).
+// Solo rellena los que aún no tienen costo capturado: nunca pisa un costo que
+// tú ya hayas escrito, ni toca los precios. Se ejecuta una sola vez.
+(function agregarCostosAlCatalogo() {
+  const FLAG = "mte_migr_catalogo_2026_07e";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const costosPorNombre = new Map(
+      CATALOGO_DEFAULT
+        .filter(p => p.costo !== null && p.costo !== undefined)
+        .map(p => [p.nombre.trim().toLowerCase(), p.costo])
+    );
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (normalizarCosto(p.costo) !== null) continue; // ya tiene costo: respetarlo
+      const costo = costosPorNombre.get(String(p.nombre || "").trim().toLowerCase());
+      if (costo !== undefined) { p.costo = costo; cambió = true; }
+      else if (p.costo === undefined) { p.costo = null; cambió = true; }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
@@ -314,7 +348,9 @@ function agregarAlCarrito(prodId) {
   if (!p) return;
   const existing = State.cart.find(x => x.id === prodId);
   if (existing) existing.cantidad += 1;
-  else State.cart.push({ id: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 });
+  // Se guarda el costo del momento para que el reporte de utilidad sea exacto
+  // aunque el costo del producto cambie después.
+  else State.cart.push({ id: p.id, nombre: p.nombre, precio: p.precio, costo: normalizarCosto(p.costo), cantidad: 1 });
   renderCarrito();
 }
 
@@ -388,7 +424,7 @@ async function generarEImprimir() {
     fecha: new Date().toISOString(),
     clienteId,
     cliente: clienteNombre,
-    items: State.cart.map(it => ({ nombre: it.nombre, precio: it.precio, cantidad: it.cantidad })),
+    items: State.cart.map(it => ({ nombre: it.nombre, precio: it.precio, costo: normalizarCosto(it.costo), cantidad: it.cantidad })),
     total: carritoTotal(),
   };
 
@@ -701,9 +737,13 @@ function guardarNegocio(ev) {
 
 function renderProductosAjustes() {
   const cont = document.getElementById("productos-admin-list");
-  cont.innerHTML = State.catalogo.map(p => `
+  cont.innerHTML = `
+    <div class="prod-admin-head">
+      <span>Producto</span><span>Costo</span><span>Precio</span><span></span>
+    </div>` + State.catalogo.map(p => `
     <div class="prod-admin-row">
       <input type="text" value="${escapeHtml(p.nombre)}" onchange="editarProducto('${p.id}','nombre',this.value)">
+      <input type="number" min="0" step="0.01" placeholder="—" value="${p.costo ?? ""}" onchange="editarProducto('${p.id}','costo',this.value)">
       <input type="number" min="0" step="0.01" value="${p.precio}" onchange="editarProducto('${p.id}','precio',this.value)">
       <button class="carrito-row-del" onclick="borrarProducto('${p.id}')">✕</button>
     </div>
@@ -713,7 +753,9 @@ function renderProductosAjustes() {
 function editarProducto(id, campo, valor) {
   const p = State.catalogo.find(x => x.id === id);
   if (!p) return;
-  p[campo] = campo === "precio" ? (parseFloat(valor) || 0) : valor;
+  if (campo === "precio") p.precio = parseFloat(valor) || 0;
+  else if (campo === "costo") p.costo = normalizarCosto(valor);
+  else p[campo] = valor;
   persistCatalogo();
 }
 
@@ -728,11 +770,13 @@ function agregarProducto(ev) {
   ev.preventDefault();
   const nombre = document.getElementById("np-nombre").value.trim();
   const precio = parseFloat(document.getElementById("np-precio").value) || 0;
+  const costo = normalizarCosto(document.getElementById("np-costo")?.value);
   if (!nombre) return;
-  State.catalogo.push({ id: uid(), nombre, precio });
+  State.catalogo.push({ id: uid(), nombre, precio, costo });
   persistCatalogo();
   document.getElementById("np-nombre").value = "";
   document.getElementById("np-precio").value = "";
+  if (document.getElementById("np-costo")) document.getElementById("np-costo").value = "";
   renderProductosAjustes();
 }
 
@@ -898,6 +942,168 @@ async function checkPinLock() {
   });
 }
 
+// ---------- Reporte de ventas en PDF ----------
+//
+// Arma una hoja imprimible con el detalle de cada venta (producto por producto),
+// tu costo, el precio al cliente y la utilidad bruta (precio - costo).
+// Se genera con la función de imprimir del navegador: en el celular se elige
+// "Guardar como PDF". Así no hace falta ninguna librería externa.
+
+// Si una venta vieja no guardó el costo, se busca el costo actual del producto
+// por nombre. Se marca como estimado para no presentar el dato como exacto.
+function costoDeItem(item) {
+  const propio = normalizarCosto(item.costo);
+  if (propio !== null) return { costo: propio, estimado: false };
+  const enCatalogo = State.catalogo.find(
+    p => String(p.nombre || "").trim().toLowerCase() === String(item.nombre || "").trim().toLowerCase()
+  );
+  const costoCat = enCatalogo ? normalizarCosto(enCatalogo.costo) : null;
+  if (costoCat !== null) return { costo: costoCat, estimado: true };
+  return { costo: null, estimado: false };
+}
+
+function ventasDelPeriodo(periodo) {
+  const ahora = new Date();
+  let desde = null;
+  if (periodo === "semana") {
+    desde = lunesDeSemana(ahora);
+  } else if (periodo === "mes") {
+    desde = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+  }
+  const lista = State.tickets.filter(t => {
+    if (!desde) return true;
+    return new Date(t.fecha) >= desde;
+  });
+  // De la más antigua a la más nueva, para leer el reporte en orden.
+  return lista.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+}
+
+function generarReportePDF() {
+  const periodo = document.getElementById("reporte-periodo")?.value || "todo";
+  const ventas = ventasDelPeriodo(periodo);
+  if (ventas.length === 0) {
+    toast("No hay ventas en ese periodo.");
+    return;
+  }
+
+  const etiquetaPeriodo = { todo: "Todas las ventas", semana: "Esta semana (lunes a domingo)", mes: "Este mes" }[periodo];
+
+  let totVenta = 0, totCosto = 0, totUtilidad = 0, totVentaConCosto = 0;
+  let hayEstimados = false, haySinCosto = false;
+
+  const bloques = ventas.map((t, idx) => {
+    // "ConCosto" acumula solo las líneas cuyo costo se conoce. La utilidad se
+    // calcula SOLO con esas: si se restara el costo conocido al total vendido,
+    // un producto sin costo capturado contaría como ganancia del 100% e
+    // inflaría la utilidad.
+    let subVenta = 0, subCosto = 0, subVentaConCosto = 0;
+    let algunSinCosto = false;
+
+    const filas = t.items.map(it => {
+      const cant = Number(it.cantidad) || 0;
+      const precio = Number(it.precio) || 0;
+      const importe = precio * cant;
+      const { costo, estimado } = costoDeItem(it);
+      if (estimado) hayEstimados = true;
+
+      subVenta += importe;
+      let costoTotal = null, utilidad = null;
+      if (costo !== null) {
+        costoTotal = costo * cant;
+        utilidad = importe - costoTotal;
+        subCosto += costoTotal;
+        subVentaConCosto += importe;
+      } else {
+        algunSinCosto = true;
+        haySinCosto = true;
+      }
+
+      return `<tr>
+        <td>${cant}</td>
+        <td>${escapeHtml(it.nombre)}${estimado ? ' <span class="rp-nota">*</span>' : ""}</td>
+        <td class="rp-num">${costo === null ? "—" : fmtMoney(costo)}</td>
+        <td class="rp-num">${fmtMoney(precio)}</td>
+        <td class="rp-num">${costoTotal === null ? "—" : fmtMoney(costoTotal)}</td>
+        <td class="rp-num">${fmtMoney(importe)}</td>
+        <td class="rp-num rp-util">${utilidad === null ? "—" : fmtMoney(utilidad)}</td>
+      </tr>`;
+    }).join("");
+
+    const subUtilidad = subVentaConCosto - subCosto;
+    totVenta += subVenta;
+    totCosto += subCosto;
+    totUtilidad += subUtilidad;
+    totVentaConCosto += subVentaConCosto;
+
+    const fecha = new Date(t.fecha).toLocaleString("es-MX", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+
+    return `
+      <div class="rp-venta">
+        <div class="rp-venta-head">
+          <span><b>Venta ${idx + 1}</b> · Nota #${t.folio}</span>
+          <span>${escapeHtml(t.cliente || "Público en general")}</span>
+        </div>
+        <div class="rp-fecha">${fecha}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Cant</th><th>Producto</th><th class="rp-num">Costo u.</th><th class="rp-num">Precio u.</th>
+              <th class="rp-num">Costo</th><th class="rp-num">Venta</th><th class="rp-num">Utilidad</th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4"><b>Subtotal venta ${idx + 1}</b></td>
+              <td class="rp-num"><b>${fmtMoney(subCosto)}</b>${algunSinCosto ? ' <span class="rp-nota">*</span>' : ""}</td>
+              <td class="rp-num"><b>${fmtMoney(subVenta)}</b></td>
+              <td class="rp-num rp-util"><b>${fmtMoney(subUtilidad)}</b></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+  }).join("");
+
+  // El margen se calcula sobre lo vendido que SÍ tiene costo conocido.
+  const margen = totVentaConCosto > 0 ? (totUtilidad / totVentaConCosto) * 100 : 0;
+  const generado = new Date().toLocaleString("es-MX");
+
+  document.getElementById("reporte-print").innerHTML = `
+    <div class="rp-hoja">
+      <div class="rp-titulo">
+        <h1>${escapeHtml(State.negocio.nombre || "Mi Tiendita Expres")}</h1>
+        <div>Reporte de ventas · ${escapeHtml(etiquetaPeriodo)}</div>
+        <div class="rp-fecha">Generado el ${generado}</div>
+      </div>
+
+      <div class="rp-resumen">
+        <div><span>Ventas</span><b>${ventas.length}</b></div>
+        <div><span>Total vendido</span><b>${fmtMoney(totVenta)}</b></div>
+        <div><span>Costo total</span><b>${fmtMoney(totCosto)}</b></div>
+        <div><span>Utilidad bruta</span><b class="rp-util">${fmtMoney(totUtilidad)}</b></div>
+        <div><span>Margen</span><b>${margen.toFixed(1)}%</b></div>
+      </div>
+
+      ${bloques}
+
+      ${(hayEstimados || haySinCosto) ? `
+        <div class="rp-avisos">
+          ${hayEstimados ? `<div>* Costo tomado del catálogo actual (esa venta se registró antes de guardar el costo), puede diferir del costo real de ese día.</div>` : ""}
+          ${haySinCosto ? `<div><b>Hay productos sin costo capturado</b> (aparecen con "—"). Sí cuentan en el total vendido, pero NO en el costo ni en la utilidad, para no inflar tu ganancia. Tu utilidad real es <b>menor</b> que la mostrada. Captura sus costos en "Ajustes &gt; Catálogo de productos" y vuelve a generar el reporte.</div>` : ""}
+        </div>` : ""}
+    </div>`;
+
+  document.body.classList.add("imprimiendo-reporte");
+  const limpiar = () => {
+    document.body.classList.remove("imprimiendo-reporte");
+    window.removeEventListener("afterprint", limpiar);
+  };
+  window.addEventListener("afterprint", limpiar);
+  setTimeout(() => { window.print(); setTimeout(limpiar, 1500); }, 60);
+}
+
 // ---------- Búsqueda ----------
 //
 // Busca "como uno esperaría" en el celular:
@@ -1028,6 +1234,8 @@ async function initApp() {
   if (versionEl) versionEl.textContent = "Versión " + APP_VERSION;
   const btnActualizar = document.getElementById("btn-buscar-actualizacion");
   if (btnActualizar) btnActualizar.addEventListener("click", buscarActualizacion);
+  const btnReporte = document.getElementById("btn-reporte-pdf");
+  if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
 
   showScreen("nota");
 
