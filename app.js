@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v12 · 19 jul 2026";
+const APP_VERSION = "v13 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -60,7 +60,10 @@ const State = {
 // Aquí se REPARA en vez de fallar: nunca se descarta información utilizable.
 
 function catalogoDeFabrica() {
-  return CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio, costo: p.costo ?? null }));
+  return CATALOGO_DEFAULT.map(p => ({
+    id: uid(), nombre: p.nombre, precio: p.precio,
+    costo: p.costo ?? null, precioUsuario: p.precioUsuario ?? null,
+  }));
 }
 
 // El costo puede no estar capturado todavía: en ese caso vale null (no 0, para
@@ -83,8 +86,10 @@ function sanearCatalogo(valor) {
     const precio = Number.isFinite(precioNum) ? precioNum : 0;
     const id = (typeof item.id === "string" && item.id) ? item.id : uid();
     const costo = normalizarCosto(item.costo);
-    if (nombre !== item.nombre || precio !== item.precio || id !== item.id || costo !== (item.costo ?? null)) reparado = true;
-    return { ...item, id, nombre, precio, costo };
+    const precioUsuario = normalizarCosto(item.precioUsuario);
+    if (nombre !== item.nombre || precio !== item.precio || id !== item.id
+        || costo !== (item.costo ?? null) || precioUsuario !== (item.precioUsuario ?? null)) reparado = true;
+    return { ...item, id, nombre, precio, costo, precioUsuario };
   });
   return { lista, reparado };
 }
@@ -266,6 +271,44 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       const actual = normalizarCosto(p.costo);
       if (actual === null || actual === viejo) { p.costo = nuevo; cambió = true; }
     }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: carga el "Precio Usuario" (precio de etiqueta para el consumidor
+// final) en los productos ya guardados, y agrega los productos nuevos del
+// catálogo de fábrica que aún no existan. Respeta lo que tú hayas capturado:
+// solo rellena el precio de usuario si está vacío. Se ejecuta una sola vez.
+(function agregarPrecioUsuarioYProductosNuevos() {
+  const FLAG = "mte_migr_catalogo_2026_07g";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const porNombre = new Map(
+      CATALOGO_DEFAULT.map(p => [p.nombre.trim().toLowerCase(), p])
+    );
+    let cambió = false;
+
+    // 1) Precio de usuario en los que ya están.
+    for (const p of State.catalogo) {
+      if (normalizarCosto(p.precioUsuario) !== null) continue; // ya capturado: respetar
+      const ref = porNombre.get(String(p.nombre || "").trim().toLowerCase());
+      const nuevo = ref ? (ref.precioUsuario ?? null) : null;
+      if (nuevo !== null) { p.precioUsuario = nuevo; cambió = true; }
+      else if (p.precioUsuario === undefined) { p.precioUsuario = null; cambió = true; }
+    }
+
+    // 2) Productos nuevos que aún no estén en el catálogo del celular.
+    const existentes = new Set(State.catalogo.map(p => String(p.nombre || "").trim().toLowerCase()));
+    for (const p of CATALOGO_DEFAULT) {
+      if (existentes.has(p.nombre.trim().toLowerCase())) continue;
+      State.catalogo.push({
+        id: uid(), nombre: p.nombre, precio: p.precio,
+        costo: p.costo ?? null, precioUsuario: p.precioUsuario ?? null,
+      });
+      cambió = true;
+    }
+
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
   localStorage.setItem(FLAG, "1");
@@ -766,17 +809,23 @@ function guardarNegocio(ev) {
 
 function renderProductosAjustes() {
   const cont = document.getElementById("productos-admin-list");
-  cont.innerHTML = `
-    <div class="prod-admin-head">
-      <span>Producto</span><span>Costo</span><span>Precio</span><span></span>
-    </div>` + State.catalogo.map(p => `
-    <div class="prod-admin-row">
-      <input type="text" value="${escapeHtml(p.nombre)}" onchange="editarProducto('${p.id}','nombre',this.value)">
-      <input type="number" min="0" step="0.01" placeholder="—" value="${p.costo ?? ""}" onchange="editarProducto('${p.id}','costo',this.value)">
-      <input type="number" min="0" step="0.01" value="${p.precio}" onchange="editarProducto('${p.id}','precio',this.value)">
-      <button class="carrito-row-del" onclick="borrarProducto('${p.id}')">✕</button>
-    </div>
-  `).join("");
+  cont.innerHTML = State.catalogo.map(p => {
+    const costo = normalizarCosto(p.costo);
+    const utilidad = costo === null ? null : (Number(p.precio) || 0) - costo;
+    return `
+    <div class="prod-admin-item">
+      <div class="prod-admin-linea1">
+        <input type="text" value="${escapeHtml(p.nombre)}" onchange="editarProducto('${p.id}','nombre',this.value)">
+        <button class="carrito-row-del" onclick="borrarProducto('${p.id}')">✕</button>
+      </div>
+      <div class="prod-admin-linea2">
+        <label>Costo mío<input type="number" min="0" step="0.01" placeholder="—" value="${p.costo ?? ""}" onchange="editarProducto('${p.id}','costo',this.value)"></label>
+        <label>Precio cliente<input type="number" min="0" step="0.01" value="${p.precio}" onchange="editarProducto('${p.id}','precio',this.value)"></label>
+        <label>Precio usuario<input type="number" min="0" step="0.01" placeholder="—" value="${p.precioUsuario ?? ""}" onchange="editarProducto('${p.id}','precioUsuario',this.value)"></label>
+      </div>
+      <div class="prod-admin-util">${utilidad === null ? "Falta capturar tu costo" : "Tu utilidad: " + fmtMoney(utilidad)}</div>
+    </div>`;
+  }).join("");
 }
 
 function editarProducto(id, campo, valor) {
@@ -784,8 +833,10 @@ function editarProducto(id, campo, valor) {
   if (!p) return;
   if (campo === "precio") p.precio = parseFloat(valor) || 0;
   else if (campo === "costo") p.costo = normalizarCosto(valor);
+  else if (campo === "precioUsuario") p.precioUsuario = normalizarCosto(valor);
   else p[campo] = valor;
   persistCatalogo();
+  if (campo === "costo" || campo === "precio") renderProductosAjustes();
 }
 
 function borrarProducto(id) {
@@ -800,12 +851,14 @@ function agregarProducto(ev) {
   const nombre = document.getElementById("np-nombre").value.trim();
   const precio = parseFloat(document.getElementById("np-precio").value) || 0;
   const costo = normalizarCosto(document.getElementById("np-costo")?.value);
+  const precioUsuario = normalizarCosto(document.getElementById("np-usuario")?.value);
   if (!nombre) return;
-  State.catalogo.push({ id: uid(), nombre, precio, costo });
+  State.catalogo.push({ id: uid(), nombre, precio, costo, precioUsuario });
   persistCatalogo();
   document.getElementById("np-nombre").value = "";
   document.getElementById("np-precio").value = "";
   if (document.getElementById("np-costo")) document.getElementById("np-costo").value = "";
+  if (document.getElementById("np-usuario")) document.getElementById("np-usuario").value = "";
   renderProductosAjustes();
 }
 
