@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v11 · 19 jul 2026";
+const APP_VERSION = "v12 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -236,6 +236,35 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       const costo = costosPorNombre.get(String(p.nombre || "").trim().toLowerCase());
       if (costo !== undefined) { p.costo = costo; cambió = true; }
       else if (p.costo === undefined) { p.costo = null; cambió = true; }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: corrige costos que se habían cargado con un valor viejo y captura
+// los dos que faltaban, según la lista de costos actualizada.
+// Solo cambia el costo si sigue teniendo el valor viejo (o está vacío): si tú
+// ya lo editaste a mano, se respeta tu valor. Se ejecuta una sola vez.
+(function corregirCostos() {
+  const FLAG = "mte_migr_catalogo_2026_07f";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    // nombre -> [costo viejo que se puede pisar, costo correcto]
+    const correcciones = new Map([
+      ["audífono buytiti ez-165", [6, 7]],
+      ["cargador de carga media 2 amp gar063", [13, 15]],
+      ["audífonos clip on (g-tide)", [122, 118]],
+      ["bocina inalámbrica para bicicleta (min. 5 pz)", [null, 122]],
+      ["audífonos deportivos (min. 5 pz) ac01", [null, 99]],
+    ]);
+    let cambió = false;
+    for (const p of State.catalogo) {
+      const corr = correcciones.get(String(p.nombre || "").trim().toLowerCase());
+      if (!corr) continue;
+      const [viejo, nuevo] = corr;
+      const actual = normalizarCosto(p.costo);
+      if (actual === null || actual === viejo) { p.costo = nuevo; cambió = true; }
     }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
@@ -1023,7 +1052,6 @@ function generarReportePDF() {
         <td>${escapeHtml(it.nombre)}${estimado ? ' <span class="rp-nota">*</span>' : ""}</td>
         <td class="rp-num">${costo === null ? "—" : fmtMoney(costo)}</td>
         <td class="rp-num">${fmtMoney(precio)}</td>
-        <td class="rp-num">${costoTotal === null ? "—" : fmtMoney(costoTotal)}</td>
         <td class="rp-num">${fmtMoney(importe)}</td>
         <td class="rp-num rp-util">${utilidad === null ? "—" : fmtMoney(utilidad)}</td>
       </tr>`;
@@ -1049,15 +1077,14 @@ function generarReportePDF() {
         <table>
           <thead>
             <tr>
-              <th>Cant</th><th>Producto</th><th class="rp-num">Costo u.</th><th class="rp-num">Precio u.</th>
-              <th class="rp-num">Costo</th><th class="rp-num">Venta</th><th class="rp-num">Utilidad</th>
+              <th>Cant</th><th>Producto</th><th class="rp-num">Costo Arthur</th>
+              <th class="rp-num">Precio Cliente</th><th class="rp-num">Total</th><th class="rp-num">Utilidad</th>
             </tr>
           </thead>
           <tbody>${filas}</tbody>
           <tfoot>
             <tr>
-              <td colspan="4"><b>Subtotal venta ${idx + 1}</b></td>
-              <td class="rp-num"><b>${fmtMoney(subCosto)}</b>${algunSinCosto ? ' <span class="rp-nota">*</span>' : ""}</td>
+              <td colspan="4"><b>Subtotal venta ${idx + 1}</b>${algunSinCosto ? ' <span class="rp-nota">*</span>' : ""}</td>
               <td class="rp-num"><b>${fmtMoney(subVenta)}</b></td>
               <td class="rp-num rp-util"><b>${fmtMoney(subUtilidad)}</b></td>
             </tr>
