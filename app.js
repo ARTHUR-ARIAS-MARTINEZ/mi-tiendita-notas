@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v13 · 19 jul 2026";
+const APP_VERSION = "v14 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1072,6 +1072,9 @@ function generarReportePDF() {
 
   let totVenta = 0, totCosto = 0, totUtilidad = 0, totVentaConCosto = 0;
   let hayEstimados = false, haySinCosto = false;
+  // Filas para la descarga en Excel (CSV), con los mismos números del PDF.
+  const filasCSV = [["Venta", "Nota", "Fecha", "Cliente", "Cantidad", "Producto",
+                     "Costo Arthur", "Precio Cliente", "Total", "Utilidad"]];
 
   const bloques = ventas.map((t, idx) => {
     // "ConCosto" acumula solo las líneas cuyo costo se conoce. La utilidad se
@@ -1099,6 +1102,13 @@ function generarReportePDF() {
         algunSinCosto = true;
         haySinCosto = true;
       }
+
+      filasCSV.push([
+        idx + 1, t.folio, new Date(t.fecha).toLocaleString("es-MX"),
+        t.cliente || "Público en general", cant, it.nombre,
+        costo === null ? "" : costo, precio, importe,
+        utilidad === null ? "" : utilidad,
+      ]);
 
       return `<tr>
         <td>${cant}</td>
@@ -1174,7 +1184,28 @@ function generarReportePDF() {
       </div>` : ""}
   `;
 
-  abrirVentanaDeReporte("Reporte de ventas · " + etiquetaPeriodo, cuerpoReporte);
+  // Totales al final del CSV, para que el archivo se explique solo.
+  filasCSV.push([]);
+  filasCSV.push(["TOTALES", "", "", "", "", "", "", "Vendido", totVenta, ""]);
+  filasCSV.push(["", "", "", "", "", "", "", "Costo", totCosto, ""]);
+  filasCSV.push(["", "", "", "", "", "", "", "Utilidad bruta", totUtilidad, ""]);
+
+  const fechaArchivo = new Date().toISOString().slice(0, 10);
+  abrirVentanaDeReporte(
+    "Reporte de ventas · " + etiquetaPeriodo,
+    cuerpoReporte,
+    aCSV(filasCSV),
+    "reporte-ventas-" + periodo + "-" + fechaArchivo + ".csv"
+  );
+}
+
+// Convierte una tabla (arreglo de arreglos) a texto CSV para Excel.
+function aCSV(filas) {
+  const esc = (v) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  return filas.map(f => f.map(esc).join(",")).join("\n");
 }
 
 // Abre el reporte en una PESTAÑA NUEVA e independiente de la app, con su
@@ -1189,7 +1220,7 @@ function generarReportePDF() {
 // Al abrir una pestaña nueva y dejar que el USUARIO toque el botón de
 // imprimir, ese problema de tiempos desaparece por completo: el botón solo
 // existe cuando el reporte ya está completo y pintado en pantalla.
-function abrirVentanaDeReporte(titulo, cuerpoHtml) {
+function abrirVentanaDeReporte(titulo, cuerpoHtml, csv, nombreArchivoCSV) {
   const estilos = `
     *,*::before,*::after{box-sizing:border-box}
     body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#000;background:#fff;margin:0;padding:16px 16px 40px}
@@ -1211,20 +1242,43 @@ function abrirVentanaDeReporte(titulo, cuerpoHtml) {
     .rp-num{text-align:right;white-space:nowrap}
     .rp-nota{color:#a00;font-weight:700}
     .rp-avisos{margin-top:14px;border-top:1px solid #bbb;padding-top:8px;font-size:9px;color:#444}
-    .rp-barra{position:sticky;top:0;background:#fff;padding-bottom:12px;margin-bottom:4px;border-bottom:1px dashed #ccc}
-    .rp-btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:600;border-radius:8px;border:none;background:#111;color:#fff;cursor:pointer}
+    .rp-barra{position:sticky;top:0;background:#fff;padding:8px 0 12px;margin-bottom:4px;border-bottom:1px dashed #ccc;display:flex;gap:8px;flex-wrap:wrap}
+    .rp-btn{flex:1 1 45%;min-width:150px;padding:13px 10px;font-size:14px;font-weight:600;border-radius:8px;border:none;cursor:pointer}
+    .rp-btn-print{background:#111;color:#fff}
+    .rp-btn-csv{background:#0a7a28;color:#fff}
+    .rp-ayuda{flex:1 1 100%;font-size:10px;color:#666;margin-top:2px}
     @media print{.rp-barra{display:none}}
     @page{margin:12mm}
   `;
 
+  // El CSV se incrusta como texto y se descarga desde la misma ventana, para
+  // que funcione sin internet y sin depender de la app principal.
+  const script = `
+    var CSV = ${JSON.stringify(csv || "")};
+    var NOMBRE = ${JSON.stringify(nombreArchivoCSV || "reporte.csv")};
+    function descargarCSV(){
+      // El BOM hace que Excel respete los acentos.
+      var blob = new Blob(["\\ufeff" + CSV], {type:"text/csv;charset=utf-8;"});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = NOMBRE;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    }
+  `;
+
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${escapeHtml(titulo)}</title>
     <style>${estilos}</style>
     </head><body>
       <div class="rp-barra">
-        <button class="rp-btn" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        <button class="rp-btn rp-btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+        <button class="rp-btn rp-btn-csv" onclick="descargarCSV()">⬇️ Descargar (Excel)</button>
+        <div class="rp-ayuda">Para guardarlo como PDF: toca "Imprimir" y en <b>Destino</b> elige <b>"Guardar como PDF"</b>.</div>
       </div>
       ${cuerpoHtml}
+      <script>${script}<\/script>
     </body></html>`;
 
   const ventana = window.open("", "_blank");

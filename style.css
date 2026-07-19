@@ -51,6 +51,8 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 
 .search-row{margin-bottom:10px}
 
+.select-campo{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.875rem;font-family:inherit;margin-bottom:10px}
+
 .empty-hint{color:var(--muted);font-size:.82rem;text-align:center;padding:20px 8px}
 
 /* Nueva nota */

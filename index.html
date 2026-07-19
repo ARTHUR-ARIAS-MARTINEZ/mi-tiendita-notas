@@ -81,6 +81,19 @@
   </div>
 
   <div class="card">
+    <h3>Reporte de ventas (PDF)</h3>
+    <div class="form-hint">Detalle venta por venta, con los productos de cada una, tu costo, el precio al cliente y tu utilidad bruta.</div>
+    <label class="form-label" style="margin-top:8px">Periodo</label>
+    <select id="reporte-periodo" class="select-campo">
+      <option value="todo">Todas las ventas</option>
+      <option value="semana">Esta semana (lunes a domingo)</option>
+      <option value="mes">Este mes</option>
+    </select>
+    <button class="btn btn-accent btn-block" id="btn-reporte-pdf">📄 Generar reporte</button>
+    <div class="form-hint" style="margin-top:6px">Se abre en una pestaña nueva con botones para <b>imprimir / guardar como PDF</b> y para <b>descargar en Excel</b>.</div>
+  </div>
+
+  <div class="card">
     <h3>Impresora Bluetooth (MP210)</h3>
     <div class="form-hint" id="printer-name">Sin conectar</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
@@ -139,20 +152,6 @@
     <div class="form-hint">Descarga tus tienditas (nombre, WhatsApp, dirección) en un archivo CSV para pasarlas a tu Bitácora de Ventas o abrirlas en Excel.</div>
     <div style="margin-top:6px">
       <button class="btn btn-accent btn-sm" id="btn-exportar-clientes">📇 Exportar clientes (CSV)</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Reporte de ventas (PDF)</h3>
-    <div class="form-hint">Detalle venta por venta, con los productos de cada una, tu costo, el precio al cliente y tu utilidad bruta.</div>
-    <label class="form-label" style="margin-top:8px">Periodo</label>
-    <select id="reporte-periodo" style="width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:.875rem;font-family:inherit;margin-bottom:8px">
-      <option value="todo">Todas las ventas</option>
-      <option value="semana">Esta semana (lunes a domingo)</option>
-      <option value="mes">Este mes</option>
-    </select>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-accent btn-sm" id="btn-reporte-pdf">📄 Generar PDF</button>
     </div>
   </div>
 
