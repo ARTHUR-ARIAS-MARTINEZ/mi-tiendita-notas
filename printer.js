@@ -53,6 +53,16 @@ const Printer = (() => {
     });
   }
 
+  // El "(Min. 5 pz)" del catálogo es un recordatorio INTERNO: es el mínimo que
+  // hay que pedirle al proveedor para que respete el costo. En el ticket del
+  // cliente no debe salir, porque le haría creer que él tiene que llevar 5.
+  function nombreParaTicket(nombre) {
+    return String(nombre || "")
+      .replace(/\s*\(\s*m[ií]n\.?\s*\d+\s*pz\s*\)\s*/gi, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
   // Construye el canvas completo del ticket a partir de los datos de la venta
   async function buildTicketCanvas(ticket, negocio) {
     const W = PRINTER_DOTS_WIDE;
@@ -81,7 +91,7 @@ const Printer = (() => {
     }
 
     const lineas = ticket.items.map(it => ({
-      nombre: it.nombre, cant: it.cantidad, precio: it.precio, importe: it.cantidad * it.precio,
+      nombre: nombreParaTicket(it.nombre), cant: it.cantidad, precio: it.precio, importe: it.cantidad * it.precio,
     }));
 
     // Cliente: nombre completo, con salto de línea si es largo (para que NO se corte)
@@ -386,7 +396,7 @@ const Printer = (() => {
     L.push("Cliente: " + (ticket.cliente || "Público en general"));
     L.push("-".repeat(32));
     for (const it of ticket.items) {
-      L.push(it.cantidad + "x " + it.nombre);
+      L.push(it.cantidad + "x " + nombreParaTicket(it.nombre));
       L.push("  $" + it.precio.toFixed(2) + " c/u = $" + (it.cantidad * it.precio).toFixed(2));
     }
     L.push("-".repeat(32));

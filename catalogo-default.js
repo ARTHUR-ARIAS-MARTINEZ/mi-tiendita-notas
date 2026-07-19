@@ -17,7 +17,7 @@ const CATALOGO_DEFAULT = [
   { nombre: "Cable iPhone CAB238", precio: 35, costo: 8.8, precioUsuario: 50 },
   { nombre: "Cable V8 CAB236", precio: 50, costo: 9.5, precioUsuario: 65 },
   { nombre: "Audífono Buytiti EZ-165", precio: 35, costo: 7, precioUsuario: 50 },
-  { nombre: "Cargador de Carga Media 2 Amp GAR063", precio: 35, costo: 15, precioUsuario: 50 },
+  { nombre: "Cargador de Carga Media 2 Amp GAR063", precio: 40, costo: 15, precioUsuario: 55 },
   { nombre: "Reloj Inteligente TB6323", precio: 210, costo: 120, precioUsuario: 260 },
   { nombre: "Audífonos Inalámbricos TWS 1 Hora AUT205", precio: 220, costo: 130.5, precioUsuario: 270 },
   { nombre: "Audífonos Clip 1 Hora AUT210", precio: 250, costo: 155, precioUsuario: 300 },

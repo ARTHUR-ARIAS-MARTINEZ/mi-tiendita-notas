@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v14 · 19 jul 2026";
+const APP_VERSION = "v15 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -309,6 +309,25 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       cambió = true;
     }
 
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: sube el Cargador de Carga Media 2 Amp GAR063 de $35 a $40
+// (precio usuario $50 -> $55). El producto pasó de 1 Amp a 2 Amp y su costo
+// subió a $15, así que a $35 era el de menor utilidad de su gama.
+// Solo cambia si sigue en el precio viejo: si tú ya lo ajustaste, se respeta.
+(function subirPrecioGAR063() {
+  const FLAG = "mte_migr_catalogo_2026_07h";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (String(p.nombre || "").trim().toLowerCase() !== "cargador de carga media 2 amp gar063") continue;
+      if (Number(p.precio) === 35) { p.precio = 40; cambió = true; }
+      if (normalizarCosto(p.precioUsuario) === 50) { p.precioUsuario = 55; cambió = true; }
+    }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
   localStorage.setItem(FLAG, "1");
