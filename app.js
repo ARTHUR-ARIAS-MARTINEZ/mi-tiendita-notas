@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v7 · 15 jul 2026";
+const APP_VERSION = "v8 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -237,8 +237,8 @@ function esProductoPrincipal(nombre) {
 
 function renderCatalogoPicker(filter) {
   const cont = document.getElementById("catalogo-picker");
-  const f = (filter || document.getElementById("producto-buscar")?.value || "").trim().toLowerCase();
-  const productos = State.catalogo.filter(p => !f || p.nombre.toLowerCase().includes(f));
+  const f = (filter || document.getElementById("producto-buscar")?.value || "").trim();
+  const productos = buscarEnLista(State.catalogo, f, p => p.nombre);
   if (productos.length === 0) {
     cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
     return;
@@ -392,8 +392,8 @@ function copiarTexto(texto) {
 
 function renderClientes() {
   const cont = document.getElementById("clientes-list");
-  const f = (document.getElementById("clientes-buscar")?.value || "").trim().toLowerCase();
-  const list = State.clientes.filter(c => !f || c.nombre.toLowerCase().includes(f));
+  const f = (document.getElementById("clientes-buscar")?.value || "").trim();
+  const list = buscarEnLista(State.clientes, f, c => c.nombre);
   if (list.length === 0) {
     cont.innerHTML = `<div class="empty-hint">Aún no tienes tienditas guardadas. Agrega una con el botón de abajo.</div>`;
     return;
@@ -512,8 +512,9 @@ function toggleDiaHistorial(dayKey) {
 
 function renderHistorial() {
   const cont = document.getElementById("historial-list");
-  const f = (document.getElementById("historial-buscar")?.value || "").trim().toLowerCase();
-  const list = State.tickets.filter(t => !f || (t.cliente || "").toLowerCase().includes(f) || String(t.folio).includes(f));
+  const f = (document.getElementById("historial-buscar")?.value || "").trim();
+  // Se busca por cliente y por folio; el orden final lo da la fecha, no la relevancia.
+  const list = State.tickets.filter(t => coincideBusqueda(`${t.cliente || ""} ${t.folio}`, f));
   if (list.length === 0) {
     cont.innerHTML = `<div class="empty-hint">Todavía no hay notas generadas.</div>`;
     return;
@@ -827,6 +828,63 @@ async function checkPinLock() {
     };
     input.focus();
   });
+}
+
+// ---------- Búsqueda ----------
+//
+// Busca "como uno esperaría" en el celular:
+//  - Sin importar mayúsculas ni acentos: "audifono" encuentra "Audífono".
+//  - Por pedazo de palabra: "car" encuentra "Cargador" (y también encontraría
+//    "multiplicar", porque lo trae al final).
+//  - Varias palabras en cualquier orden: "bocina 241" encuentra "Bocina BOC241".
+//  - Ignorando signos: "ez165" encuentra "EZ-165" y "tc" encuentra "T.C".
+
+function normalizarTexto(s) {
+  return String(s)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita acentos (í -> i, ñ -> n)
+    .toLowerCase();
+}
+
+function soloAlfanumerico(s) {
+  return s.replace(/[^a-z0-9]/g, "");
+}
+
+// Coincide si CADA palabra escrita aparece en el texto (en cualquier orden
+// y en cualquier parte de la palabra).
+function coincideBusqueda(texto, filtro) {
+  const f = normalizarTexto(filtro).trim();
+  if (!f) return true;
+  const n = normalizarTexto(texto);
+  const nCompacto = soloAlfanumerico(n);
+  return f.split(/\s+/).filter(Boolean).every(term => {
+    if (n.includes(term)) return true;
+    const t = soloAlfanumerico(term);
+    return t.length > 0 && nCompacto.includes(t);
+  });
+}
+
+// Ordena los resultados por qué tan "directa" es la coincidencia:
+// 3 = el nombre empieza igual, 2 = alguna palabra empieza igual, 1 = lo contiene.
+function puntajeBusqueda(texto, filtro) {
+  const f = normalizarTexto(filtro).trim();
+  if (!f) return 0;
+  const n = normalizarTexto(texto);
+  if (n.startsWith(f)) return 3;
+  if (n.split(/[^a-z0-9]+/).some(palabra => palabra && palabra.startsWith(f))) return 2;
+  return 1;
+}
+
+// Filtra y ordena una lista por relevancia, conservando el orden original
+// entre los que empatan.
+function buscarEnLista(lista, filtro, obtenerTexto) {
+  const f = String(filtro || "").trim();
+  const coincidencias = lista.filter(item => coincideBusqueda(obtenerTexto(item), f));
+  if (!f) return coincidencias;
+  return coincidencias
+    .map((item, i) => ({ item, i, score: puntajeBusqueda(obtenerTexto(item), f) }))
+    .sort((a, b) => (b.score - a.score) || (a.i - b.i))
+    .map(x => x.item);
 }
 
 // ---------- Utilidades UI ----------
