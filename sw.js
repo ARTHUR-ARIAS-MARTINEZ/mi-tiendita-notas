@@ -4,7 +4,7 @@
 // Estrategia "red primero": cuando hay internet, siempre se trae la versión
 // más nueva de cada archivo (así los cambios se ven de inmediato); si no hay
 // internet o la señal está muy lenta, usa la copia guardada en caché.
-const CACHE = "mte-notas-v15";
+const CACHE = "mte-notas-v16";
 const ASSETS = [
   "./",
   "index.html",

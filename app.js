@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v15 · 19 jul 2026";
+const APP_VERSION = "v16 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -333,6 +333,42 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// Migración: aplica la lista de precios revisada (julio 2026) tras el análisis
+// de márgenes y el cotejo con los precios de mercado.
+// Cada renglón es [nombre, precio viejo, precio nuevo, usuario viejo, usuario nuevo].
+// Solo cambia si el producto sigue EXACTAMENTE en el precio viejo: si tú ya lo
+// ajustaste a otra cosa, se respeta tu valor. Se ejecuta una sola vez.
+(function aplicarPreciosRevisados() {
+  const FLAG = "mte_migr_precios_2026_07i";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const tabla = new Map([
+      ["power bank con cables 5000 mah gar261", [160, 190, 195, 245]],
+      ["mouse inalámbrico rat001", [96, 105, 120, 135]],
+      ["tira led de 5 mts", [105, 125, 130, 160]],
+      ["bocina boc060", [250, 255, 300, 310]],
+      ["bocina boc062", [180, 210, 216, 275]],
+      ["bocina boc241", [350, 400, 420, 510]],
+      ["bocina boc242", [260, 300, 312, 390]],
+      ["bocina boc243", [210, 215, 252, 260]],
+      ["bocina boc244", [220, 260, 264, 340]],
+      ["bocina boc250", [520, 600, 624, 780]],
+      ["audífonos earpods (para iphone)", [60, 70, 80, 90]],
+      ["audífonos (para t.c.) aut125", [60, 70, 80, 90]],
+    ]);
+    let cambió = false;
+    for (const p of State.catalogo) {
+      const fila = tabla.get(String(p.nombre || "").trim().toLowerCase());
+      if (!fila) continue;
+      const [precioViejo, precioNuevo, usuarioViejo, usuarioNuevo] = fila;
+      if (Number(p.precio) === precioViejo) { p.precio = precioNuevo; cambió = true; }
+      if (normalizarCosto(p.precioUsuario) === usuarioViejo) { p.precioUsuario = usuarioNuevo; cambió = true; }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
@@ -351,6 +387,7 @@ function showScreen(name) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.screen === name));
   if (name === "clientes") renderClientes();
   if (name === "historial") renderHistorial();
+  if (name === "rotacion") renderRotacion();
   if (name === "ajustes") renderAjustes();
   if (name === "nota") renderNota();
 }
@@ -1043,6 +1080,154 @@ async function checkPinLock() {
   });
 }
 
+// ===================================================================
+// PANTALLA: Rotación de productos
+// ===================================================================
+//
+// Responde tres preguntas con tus ventas reales:
+//   1. ¿Qué se mueve y cuánto me deja de verdad? (no cuál vendí más piezas,
+//      sino cuál me dio más dinero)
+//   2. ¿Qué lleva mucho sin venderse y tiene dinero mío detenido?
+//   3. ¿Qué nunca se ha vendido?
+
+function diasEntre(a, b) {
+  return Math.floor((a - b) / (1000 * 60 * 60 * 24));
+}
+
+function analizarRotacion(dias) {
+  const ahora = new Date();
+  const desde = dias > 0 ? new Date(ahora.getTime() - dias * 86400000) : null;
+  const ventas = State.tickets.filter(t => !desde || new Date(t.fecha) >= desde);
+
+  // Acumulado por producto (se agrupa por nombre, que es lo que guarda la nota).
+  const porProducto = new Map();
+  for (const t of ventas) {
+    const fecha = new Date(t.fecha);
+    for (const it of t.items) {
+      const clave = String(it.nombre || "").trim().toLowerCase();
+      if (!porProducto.has(clave)) {
+        porProducto.set(clave, { nombre: it.nombre, piezas: 0, vendido: 0, utilidad: 0, ultima: null, sinCosto: false });
+      }
+      const acc = porProducto.get(clave);
+      const cant = Number(it.cantidad) || 0;
+      const importe = (Number(it.precio) || 0) * cant;
+      acc.piezas += cant;
+      acc.vendido += importe;
+      const { costo } = costoDeItem(it);
+      if (costo === null) acc.sinCosto = true;
+      else acc.utilidad += importe - costo * cant;
+      if (!acc.ultima || fecha > acc.ultima) acc.ultima = fecha;
+    }
+  }
+
+  // Última venta de cada producto en TODO el historial (para los dormidos:
+  // importa cuándo se vendió por última vez, no solo dentro del periodo).
+  const ultimaVentaGlobal = new Map();
+  for (const t of State.tickets) {
+    const fecha = new Date(t.fecha);
+    for (const it of t.items) {
+      const clave = String(it.nombre || "").trim().toLowerCase();
+      const prev = ultimaVentaGlobal.get(clave);
+      if (!prev || fecha > prev) ultimaVentaGlobal.set(clave, fecha);
+    }
+  }
+
+  const seMueven = [...porProducto.values()].sort((a, b) => b.utilidad - a.utilidad);
+
+  // Dormidos y nunca vendidos se sacan del CATÁLOGO: son productos que tienes
+  // (o podrías tener) y no se están moviendo.
+  const dormidos = [];
+  const nuncaVendidos = [];
+  for (const p of State.catalogo) {
+    const clave = String(p.nombre || "").trim().toLowerCase();
+    const ultima = ultimaVentaGlobal.get(clave);
+    if (!ultima) { nuncaVendidos.push(p); continue; }
+    const diasSin = diasEntre(ahora, ultima);
+    if (diasSin >= 21) dormidos.push({ ...p, ultima, diasSin });
+  }
+  dormidos.sort((a, b) => b.diasSin - a.diasSin);
+
+  const totVendido = seMueven.reduce((s, p) => s + p.vendido, 0);
+  const totUtilidad = seMueven.reduce((s, p) => s + p.utilidad, 0);
+
+  return { ventas, seMueven, dormidos, nuncaVendidos, totVendido, totUtilidad, dias };
+}
+
+function textoDesdeUltima(diasSin) {
+  if (diasSin <= 0) return "hoy";
+  if (diasSin === 1) return "ayer";
+  return "hace " + diasSin + " días";
+}
+
+function renderRotacion() {
+  const cont = document.getElementById("rotacion-contenido");
+  const dias = Number(document.getElementById("rotacion-periodo")?.value ?? 30);
+  const r = analizarRotacion(dias);
+
+  if (State.tickets.length === 0) {
+    cont.innerHTML = `<div class="empty-hint">Todavía no hay ventas registradas. En cuanto generes notas, aquí verás qué se mueve y qué no.</div>`;
+    return;
+  }
+
+  const etiqueta = dias > 0 ? `últimos ${dias} días` : "todo el historial";
+
+  // --- Resumen ---
+  let html = `
+    <div class="card rot-resumen">
+      <div><span>Ventas</span><b>${r.ventas.length}</b></div>
+      <div><span>Vendido</span><b>${fmtMoney(r.totVendido)}</b></div>
+      <div><span>Utilidad</span><b class="rot-verde">${fmtMoney(r.totUtilidad)}</b></div>
+    </div>`;
+
+  // --- Se mueven (ranking por utilidad) ---
+  if (r.seMueven.length === 0) {
+    html += `<div class="empty-hint">Sin ventas en los ${etiqueta}.</div>`;
+  } else {
+    const maxUtil = Math.max(...r.seMueven.map(p => p.utilidad), 1);
+    html += `<h3 class="rot-titulo">🔥 Lo que te deja dinero <span>(${etiqueta})</span></h3>`;
+    html += r.seMueven.slice(0, 12).map((p, i) => {
+      const porDia = dias > 0 ? (p.piezas / dias) : 0;
+      const ritmo = dias > 0 && p.piezas > 0
+        ? ` · ~${(porDia * 7).toFixed(1)} pz/semana` : "";
+      return `
+      <div class="card rot-item">
+        <div class="rot-item-top">
+          <span class="rot-pos">${i + 1}</span>
+          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+          <span class="rot-util">${p.sinCosto ? "—" : fmtMoney(p.utilidad)}</span>
+        </div>
+        <div class="rot-barra"><span style="width:${Math.max(2, (p.utilidad / maxUtil) * 100)}%"></span></div>
+        <div class="rot-sub">${p.piezas} pz · ${fmtMoney(p.vendido)} vendido${ritmo} · última venta ${textoDesdeUltima(diasEntre(new Date(), p.ultima))}</div>
+      </div>`;
+    }).join("");
+  }
+
+  // --- Dormidos ---
+  if (r.dormidos.length) {
+    const capitalDetenido = r.dormidos.reduce((s, p) => s + (normalizarCosto(p.costo) || 0), 0);
+    html += `<h3 class="rot-titulo">😴 Dormidos <span>(21 días o más sin venderse)</span></h3>`;
+    html += `<div class="rot-aviso">Si tienes una pieza de cada uno, son <b>${fmtMoney(capitalDetenido)}</b> de tu dinero detenido.</div>`;
+    html += r.dormidos.slice(0, 10).map(p => `
+      <div class="card rot-item rot-item-frio">
+        <div class="rot-item-top">
+          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+          <span class="rot-dias">${p.diasSin} días</span>
+        </div>
+        <div class="rot-sub">Última venta ${textoDesdeUltima(p.diasSin)}${normalizarCosto(p.costo) !== null ? ` · te cuesta ${fmtMoney(p.costo)} c/u` : ""}</div>
+      </div>`).join("");
+  }
+
+  // --- Nunca vendidos ---
+  if (r.nuncaVendidos.length) {
+    html += `<h3 class="rot-titulo">⚪ Nunca se han vendido <span>(${r.nuncaVendidos.length})</span></h3>`;
+    html += `<div class="card rot-nunca">${
+      r.nuncaVendidos.map(p => `<div>${escapeHtml(p.nombre)}</div>`).join("")
+    }</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
 // ---------- Reporte de ventas en PDF ----------
 //
 // Arma una hoja imprimible con el detalle de cada venta (producto por producto),
@@ -1442,6 +1627,8 @@ async function initApp() {
   if (btnActualizar) btnActualizar.addEventListener("click", buscarActualizacion);
   const btnReporte = document.getElementById("btn-reporte-pdf");
   if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
+  const selRotacion = document.getElementById("rotacion-periodo");
+  if (selRotacion) selRotacion.addEventListener("change", renderRotacion);
 
   showScreen("nota");
 

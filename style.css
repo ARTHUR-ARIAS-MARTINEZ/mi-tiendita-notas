@@ -155,6 +155,30 @@ td{padding:8px;border-top:1px solid var(--border)}
 #pin-input{text-align:center;letter-spacing:.4em;font-size:1.3rem;max-width:200px}
 .pin-error{color:var(--red);font-size:.8rem;min-height:1.2em}
 
+/* Rotación de productos */
+.rot-resumen{display:flex;justify-content:space-between;gap:8px;text-align:center}
+.rot-resumen div{display:flex;flex-direction:column;gap:2px;flex:1}
+.rot-resumen span{font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.03em}
+.rot-resumen b{font-size:1rem;font-family:var(--font-h)}
+.rot-verde{color:var(--green)}
+
+.rot-titulo{font-family:var(--font-h);font-size:.85rem;margin:18px 0 8px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.rot-titulo span{font-size:.68rem;font-weight:400;color:var(--muted);text-transform:none}
+
+.rot-item{padding:10px 12px;margin-bottom:8px}
+.rot-item-top{display:flex;align-items:center;gap:8px}
+.rot-pos{background:rgba(43,255,15,.14);color:var(--green);font-size:.65rem;font-weight:700;width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex:none}
+.rot-nombre{flex:1;font-size:.8rem;font-weight:600;line-height:1.25}
+.rot-util{font-weight:800;color:var(--green);font-size:.85rem;white-space:nowrap}
+.rot-dias{font-weight:700;color:#ffd166;font-size:.75rem;white-space:nowrap}
+.rot-sub{font-size:.68rem;color:var(--muted);margin-top:4px}
+.rot-barra{height:4px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:7px;overflow:hidden}
+.rot-barra span{display:block;height:100%;background:var(--grad);border-radius:99px}
+
+.rot-item-frio{border-color:rgba(255,209,102,.25)}
+.rot-aviso{background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.28);color:#ffd166;border-radius:10px;padding:9px 11px;font-size:.72rem;margin-bottom:10px}
+.rot-nunca{font-size:.75rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+
 /* Toast */
 #toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#111;border:1px solid var(--border-accent);color:var(--text);padding:10px 16px;border-radius:10px;font-size:.82rem;opacity:0;pointer-events:none;transition:.25s;z-index:600}
 #toast.show{opacity:1;transform:translate(-50%,0)}

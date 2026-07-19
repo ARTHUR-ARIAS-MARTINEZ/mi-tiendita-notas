@@ -63,6 +63,19 @@
   <div id="historial-list"></div>
 </section>
 
+<!-- ============ PANTALLA: ROTACIÓN ============ -->
+<section class="screen" id="screen-rotacion">
+  <h2>Rotación de productos</h2>
+  <label class="form-label">Periodo a analizar</label>
+  <select id="rotacion-periodo" class="select-campo">
+    <option value="30">Últimos 30 días</option>
+    <option value="60">Últimos 60 días</option>
+    <option value="90">Últimos 90 días</option>
+    <option value="0">Todo el historial</option>
+  </select>
+  <div id="rotacion-contenido"></div>
+</section>
+
 <!-- ============ PANTALLA: AJUSTES ============ -->
 <section class="screen" id="screen-ajustes">
   <h2>Ajustes</h2>
@@ -168,6 +181,7 @@
   <button class="nav-btn active" data-screen="nota"><span class="icon">🧾</span>Nota</button>
   <button class="nav-btn" data-screen="clientes"><span class="icon">🏬</span>Tienditas</button>
   <button class="nav-btn" data-screen="historial"><span class="icon">📜</span>Historial</button>
+  <button class="nav-btn" data-screen="rotacion"><span class="icon">📊</span>Rotación</button>
   <button class="nav-btn" data-screen="ajustes"><span class="icon">⚙️</span>Ajustes</button>
 </div>
 
