@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v10 · 19 jul 2026";
+const APP_VERSION = "v11 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1070,38 +1070,91 @@ function generarReportePDF() {
   const margen = totVentaConCosto > 0 ? (totUtilidad / totVentaConCosto) * 100 : 0;
   const generado = new Date().toLocaleString("es-MX");
 
-  document.getElementById("reporte-print").innerHTML = `
-    <div class="rp-hoja">
-      <div class="rp-titulo">
-        <h1>${escapeHtml(State.negocio.nombre || "Mi Tiendita Expres")}</h1>
-        <div>Reporte de ventas · ${escapeHtml(etiquetaPeriodo)}</div>
-        <div class="rp-fecha">Generado el ${generado}</div>
+  const cuerpoReporte = `
+    <div class="rp-titulo">
+      <h1>${escapeHtml(State.negocio.nombre || "Mi Tiendita Expres")}</h1>
+      <div>Reporte de ventas · ${escapeHtml(etiquetaPeriodo)}</div>
+      <div class="rp-fecha">Generado el ${generado}</div>
+    </div>
+
+    <div class="rp-resumen">
+      <div><span>Ventas</span><b>${ventas.length}</b></div>
+      <div><span>Total vendido</span><b>${fmtMoney(totVenta)}</b></div>
+      <div><span>Costo total</span><b>${fmtMoney(totCosto)}</b></div>
+      <div><span>Utilidad bruta</span><b class="rp-util">${fmtMoney(totUtilidad)}</b></div>
+      <div><span>Margen</span><b>${margen.toFixed(1)}%</b></div>
+    </div>
+
+    ${bloques}
+
+    ${(hayEstimados || haySinCosto) ? `
+      <div class="rp-avisos">
+        ${hayEstimados ? `<div>* Costo tomado del catálogo actual (esa venta se registró antes de guardar el costo), puede diferir del costo real de ese día.</div>` : ""}
+        ${haySinCosto ? `<div><b>Hay productos sin costo capturado</b> (aparecen con "—"). Sí cuentan en el total vendido, pero NO en el costo ni en la utilidad, para no inflar tu ganancia. Tu utilidad real es <b>menor</b> que la mostrada. Captura sus costos en "Ajustes &gt; Catálogo de productos" y vuelve a generar el reporte.</div>` : ""}
+      </div>` : ""}
+  `;
+
+  abrirVentanaDeReporte("Reporte de ventas · " + etiquetaPeriodo, cuerpoReporte);
+}
+
+// Abre el reporte en una PESTAÑA NUEVA e independiente de la app, con su
+// propio botón de "Imprimir / Guardar como PDF".
+//
+// Antes se armaba el reporte escondiendo la pantalla actual con CSS
+// (@media print) y llamando a window.print() automáticamente. En el celular
+// eso a veces imprimía lo que había en pantalla en ese momento (p. ej.
+// Ajustes) en vez del reporte, porque el navegador no siempre alcanza a
+// "voltear la página" a tiempo antes de que el script pida imprimir.
+//
+// Al abrir una pestaña nueva y dejar que el USUARIO toque el botón de
+// imprimir, ese problema de tiempos desaparece por completo: el botón solo
+// existe cuando el reporte ya está completo y pintado en pantalla.
+function abrirVentanaDeReporte(titulo, cuerpoHtml) {
+  const estilos = `
+    *,*::before,*::after{box-sizing:border-box}
+    body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#000;background:#fff;margin:0;padding:16px 16px 40px}
+    h1{font-size:18px;margin:0 0 2px}
+    .rp-titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px}
+    .rp-fecha{font-size:10px;color:#555}
+    .rp-resumen{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;border:1px solid #000;padding:8px 10px;margin-bottom:16px}
+    .rp-resumen div{display:flex;flex-direction:column}
+    .rp-resumen span{font-size:9px;text-transform:uppercase;color:#555}
+    .rp-resumen b{font-size:13px}
+    .rp-util{color:#0a7a28}
+    .rp-venta{margin-bottom:16px;page-break-inside:avoid;break-inside:avoid}
+    .rp-venta-head{display:flex;justify-content:space-between;gap:10px;background:#eee;padding:5px 7px;font-size:11px}
+    .rp-venta .rp-fecha{padding:2px 7px 6px}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    th{background:#f4f4f4;font-size:9px;padding:4px 6px;border:1px solid #bbb;text-align:left;font-weight:600}
+    td{padding:4px 6px;border:1px solid #ddd}
+    tfoot td{border-top:2px solid #888;background:#fafafa}
+    .rp-num{text-align:right;white-space:nowrap}
+    .rp-nota{color:#a00;font-weight:700}
+    .rp-avisos{margin-top:14px;border-top:1px solid #bbb;padding-top:8px;font-size:9px;color:#444}
+    .rp-barra{position:sticky;top:0;background:#fff;padding-bottom:12px;margin-bottom:4px;border-bottom:1px dashed #ccc}
+    .rp-btn{display:block;width:100%;padding:12px;font-size:14px;font-weight:600;border-radius:8px;border:none;background:#111;color:#fff;cursor:pointer}
+    @media print{.rp-barra{display:none}}
+    @page{margin:12mm}
+  `;
+
+  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+    <title>${escapeHtml(titulo)}</title>
+    <style>${estilos}</style>
+    </head><body>
+      <div class="rp-barra">
+        <button class="rp-btn" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
       </div>
+      ${cuerpoHtml}
+    </body></html>`;
 
-      <div class="rp-resumen">
-        <div><span>Ventas</span><b>${ventas.length}</b></div>
-        <div><span>Total vendido</span><b>${fmtMoney(totVenta)}</b></div>
-        <div><span>Costo total</span><b>${fmtMoney(totCosto)}</b></div>
-        <div><span>Utilidad bruta</span><b class="rp-util">${fmtMoney(totUtilidad)}</b></div>
-        <div><span>Margen</span><b>${margen.toFixed(1)}%</b></div>
-      </div>
-
-      ${bloques}
-
-      ${(hayEstimados || haySinCosto) ? `
-        <div class="rp-avisos">
-          ${hayEstimados ? `<div>* Costo tomado del catálogo actual (esa venta se registró antes de guardar el costo), puede diferir del costo real de ese día.</div>` : ""}
-          ${haySinCosto ? `<div><b>Hay productos sin costo capturado</b> (aparecen con "—"). Sí cuentan en el total vendido, pero NO en el costo ni en la utilidad, para no inflar tu ganancia. Tu utilidad real es <b>menor</b> que la mostrada. Captura sus costos en "Ajustes &gt; Catálogo de productos" y vuelve a generar el reporte.</div>` : ""}
-        </div>` : ""}
-    </div>`;
-
-  document.body.classList.add("imprimiendo-reporte");
-  const limpiar = () => {
-    document.body.classList.remove("imprimiendo-reporte");
-    window.removeEventListener("afterprint", limpiar);
-  };
-  window.addEventListener("afterprint", limpiar);
-  setTimeout(() => { window.print(); setTimeout(limpiar, 1500); }, 60);
+  const ventana = window.open("", "_blank");
+  if (!ventana) {
+    alert("El navegador bloqueó la ventana del reporte. Permite ventanas emergentes para esta app e inténtalo de nuevo.");
+    return;
+  }
+  ventana.document.open();
+  ventana.document.write(html);
+  ventana.document.close();
 }
 
 // ---------- Búsqueda ----------
