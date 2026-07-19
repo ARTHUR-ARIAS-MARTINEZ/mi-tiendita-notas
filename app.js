@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v8 · 19 jul 2026";
+const APP_VERSION = "v9 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -53,9 +53,59 @@ const State = {
   clienteNombreLibre: "",
 };
 
+// ---------- Blindaje de los datos guardados ----------
+// Si un respaldo importado o un dato corrupto dejaba el catálogo en mal estado
+// (un producto sin nombre, o algo que no es una lista), la app se quedaba SIN
+// productos y no se podía vender, sin manera de arreglarlo desde la app.
+// Aquí se REPARA en vez de fallar: nunca se descarta información utilizable.
+
+function catalogoDeFabrica() {
+  return CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio }));
+}
+
+// Devuelve { lista, reparado } o null si el valor ni siquiera es una lista.
+function sanearCatalogo(valor) {
+  if (!Array.isArray(valor)) return null;
+  let reparado = false;
+  const lista = valor.map(p => {
+    const item = (p && typeof p === "object") ? p : {};
+    const nombre = (typeof item.nombre === "string" && item.nombre.trim())
+      ? item.nombre : "Producto sin nombre";
+    const precioNum = Number(item.precio);
+    const precio = Number.isFinite(precioNum) ? precioNum : 0;
+    const id = (typeof item.id === "string" && item.id) ? item.id : uid();
+    if (nombre !== item.nombre || precio !== item.precio || id !== item.id) reparado = true;
+    return { ...item, id, nombre, precio };
+  });
+  return { lista, reparado };
+}
+
 if (!State.catalogo) {
-  State.catalogo = CATALOGO_DEFAULT.map(p => ({ id: uid(), nombre: p.nombre, precio: p.precio }));
+  State.catalogo = catalogoDeFabrica();
   saveJSON(STORE_KEYS.catalogo, State.catalogo);
+} else {
+  const saneado = sanearCatalogo(State.catalogo);
+  if (!saneado) {
+    // Lo guardado no es una lista de productos: usar el catálogo de fábrica
+    // en memoria para que la app siga sirviendo. No se sobrescribe lo guardado,
+    // por si se pudiera recuperar a mano desde un respaldo.
+    State.catalogo = catalogoDeFabrica();
+  } else {
+    State.catalogo = saneado.lista;
+    // Solo se guarda si de verdad hubo algo que reparar, para que el arreglo
+    // quede fijo y el producto se pueda corregir desde Ajustes.
+    if (saneado.reparado) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+}
+
+// Clientes y notas deben ser listas. Si no lo son, se usa una lista vacía en
+// memoria (no se guarda) para que las pantallas no truenen.
+if (!Array.isArray(State.clientes)) State.clientes = [];
+if (!Array.isArray(State.tickets)) State.tickets = [];
+
+// Los datos del negocio deben ser un objeto (los usa el ticket impreso).
+if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.negocio)) {
+  State.negocio = { ...DEFAULT_NEGOCIO };
 }
 
 // Migración: corregir ortografía anterior en datos ya guardados en el celular,
@@ -231,7 +281,7 @@ function quitarCliente() {
 // catálogo en la pantalla de Nota (los de mayor venta).
 const CODIGOS_PRODUCTOS_PRINCIPALES = ["CAB237", "CAB238", "EZ-165", "GAR063"];
 function esProductoPrincipal(nombre) {
-  const n = nombre.toUpperCase();
+  const n = String(nombre || "").toUpperCase();
   return CODIGOS_PRODUCTOS_PRINCIPALES.some(cod => n.includes(cod));
 }
 
@@ -767,11 +817,29 @@ function importarDatos(ev) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        alert("El archivo no es un respaldo válido.");
+        return;
+      }
+      // Revisar la forma de los datos ANTES de guardar nada: un respaldo
+      // malformado dejaba la app sin productos y sin manera de arreglarla.
+      const listasMal = ["catalogo", "clientes", "tickets"]
+        .filter(k => data[k] !== undefined && !Array.isArray(data[k]));
+      if (listasMal.length) {
+        alert("El respaldo está dañado (" + listasMal.join(", ") + "). No se importó nada.");
+        return;
+      }
+      if (data.catalogo !== undefined && !sanearCatalogo(data.catalogo)) {
+        alert("El catálogo del respaldo está dañado. No se importó nada.");
+        return;
+      }
       if (!confirm("Esto reemplazará tus clientes, catálogo e historial actuales en este celular por los del archivo. ¿Continuar?")) return;
-      if (data.negocio) { State.negocio = data.negocio; persistNegocio(); }
-      if (data.catalogo) { State.catalogo = data.catalogo; persistCatalogo(); }
-      if (data.clientes) { State.clientes = data.clientes; persistClientes(); }
-      if (data.tickets) { State.tickets = data.tickets; persistTickets(); }
+      if (data.negocio && typeof data.negocio === "object" && !Array.isArray(data.negocio)) {
+        State.negocio = data.negocio; persistNegocio();
+      }
+      if (data.catalogo !== undefined) { State.catalogo = sanearCatalogo(data.catalogo).lista; persistCatalogo(); }
+      if (data.clientes !== undefined) { State.clientes = data.clientes; persistClientes(); }
+      if (data.tickets !== undefined) { State.tickets = data.tickets; persistTickets(); }
       toast("Datos importados correctamente.");
       renderAjustes();
     } catch (e) {
