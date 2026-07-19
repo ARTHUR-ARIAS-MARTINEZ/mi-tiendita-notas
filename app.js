@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v17 · 19 jul 2026";
+const APP_VERSION = "v18 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -387,7 +387,7 @@ function showScreen(name) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.screen === name));
   if (name === "clientes") renderClientes();
   if (name === "historial") renderHistorial();
-  if (name === "rotacion") renderRotacion();
+  if (name === "rotacion") { renderRotacion(); renderResurtido(); }
   if (name === "ajustes") renderAjustes();
   if (name === "nota") renderNota();
 }
@@ -1235,6 +1235,204 @@ function renderRotacion() {
   cont.innerHTML = html;
 }
 
+// ===================================================================
+// Qué resurtir (alerta de faltantes)
+// ===================================================================
+//
+// Con las ventas ya registradas calcula tres cosas:
+//   1. Lo que vendías seguido y de pronto se dejó de vender (probable faltante).
+//   2. Lo que está acelerando (comparando la mitad vieja del periodo con la
+//      mitad reciente), para surtir más antes de quedarte corto.
+//   3. Una lista de compra: cuántas piezas cubren las próximas semanas al
+//      ritmo actual, con la inversión y la utilidad que deja.
+
+function analizarResurtido(dias, semanasCubrir) {
+  const ahora = new Date();
+  const diasReales = dias > 0 ? dias : 90; // "todo el historial" se acota a 90 días para el ritmo
+  const desde = new Date(ahora.getTime() - diasReales * 86400000);
+  const mitad = new Date(ahora.getTime() - (diasReales / 2) * 86400000);
+
+  const acc = new Map(); // clave -> datos del producto
+  for (const t of State.tickets) {
+    const fecha = new Date(t.fecha);
+    if (fecha < desde) continue;
+    for (const it of t.items) {
+      const clave = claveDeProducto(it.nombre);
+      if (!acc.has(clave)) {
+        acc.set(clave, { nombre: it.nombre, piezas: 0, viejas: 0, recientes: 0, ultima: null });
+      }
+      const a = acc.get(clave);
+      const cant = Number(it.cantidad) || 0;
+      a.piezas += cant;
+      if (fecha >= mitad) a.recientes += cant; else a.viejas += cant;
+      if (!a.ultima || fecha > a.ultima) a.ultima = fecha;
+    }
+  }
+
+  const semanas = diasReales / 7;
+  const lista = [];
+  const posiblesFaltantes = [];
+  const acelerando = [];
+
+  for (const [clave, a] of acc) {
+    const enCatalogo = State.catalogo.find(p => claveDeProducto(p.nombre) === clave);
+    const costo = enCatalogo ? normalizarCosto(enCatalogo.costo) : null;
+    const precio = enCatalogo ? Number(enCatalogo.precio) || 0 : 0;
+    const ritmoSemanal = a.piezas / semanas;
+    const diasSinVender = diasEntre(ahora, a.ultima);
+
+    // Lista de compra: solo lo que de verdad se mueve.
+    if (ritmoSemanal > 0) {
+      const sugerido = Math.max(1, Math.ceil(ritmoSemanal * semanasCubrir));
+      lista.push({
+        nombre: enCatalogo ? enCatalogo.nombre : a.nombre,
+        piezas: a.piezas, ritmoSemanal, sugerido,
+        inversion: costo !== null ? costo * sugerido : null,
+        utilidad: costo !== null ? (precio - costo) * sugerido : null,
+      });
+    }
+
+    // Probable faltante: vendía seguido y lleva más de 2 semanas parado.
+    if (a.piezas >= 3 && diasSinVender >= 14) {
+      posiblesFaltantes.push({ nombre: a.nombre, piezas: a.piezas, diasSinVender, ritmoSemanal });
+    }
+
+    // Acelerando: la mitad reciente vendió bastante más que la mitad vieja.
+    if (a.recientes >= 3 && a.recientes > a.viejas * 1.5) {
+      const crecimiento = a.viejas > 0 ? ((a.recientes - a.viejas) / a.viejas) * 100 : 100;
+      acelerando.push({ nombre: a.nombre, viejas: a.viejas, recientes: a.recientes, crecimiento });
+    }
+  }
+
+  lista.sort((a, b) => (b.utilidad ?? 0) - (a.utilidad ?? 0));
+  acelerando.sort((a, b) => b.crecimiento - a.crecimiento);
+  posiblesFaltantes.sort((a, b) => b.ritmoSemanal - a.ritmoSemanal);
+
+  return { lista, posiblesFaltantes, acelerando, semanasCubrir, diasReales };
+}
+
+function renderResurtido() {
+  const cont = document.getElementById("resurtir-contenido");
+  const dias = Number(document.getElementById("rotacion-periodo")?.value ?? 30);
+  const semanas = Number(document.getElementById("resurtir-semanas")?.value ?? 4);
+  const r = analizarResurtido(dias, semanas);
+
+  if (State.tickets.length === 0) {
+    cont.innerHTML = `<div class="empty-hint">Aún no hay ventas. Cuando registres algunas, aquí te digo qué comprar y cuánto.</div>`;
+    return;
+  }
+
+  let html = `
+    <label class="form-label">Quiero surtido para las próximas</label>
+    <select id="resurtir-semanas" class="select-campo">
+      ${[1, 2, 4, 8].map(s => `<option value="${s}"${s === semanas ? " selected" : ""}>${s} semana${s > 1 ? "s" : ""}</option>`).join("")}
+    </select>`;
+
+  if (r.posiblesFaltantes.length) {
+    html += `<h3 class="rot-titulo">🔴 Puede que se te haya acabado</h3>`;
+    html += r.posiblesFaltantes.slice(0, 6).map(p => `
+      <div class="card rot-item rot-item-alerta">
+        <div class="rot-item-top">
+          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+          <span class="rot-dias">${p.diasSinVender} días</span>
+        </div>
+        <div class="rot-sub">Vendiste ${p.piezas} pz y lleva ${p.diasSinVender} días sin venderse. Normalmente sale ~${p.ritmoSemanal.toFixed(1)} pz/semana. ¿Se te acabó?</div>
+      </div>`).join("");
+  }
+
+  if (r.acelerando.length) {
+    html += `<h3 class="rot-titulo">📈 Está despegando</h3>`;
+    html += r.acelerando.slice(0, 6).map(p => `
+      <div class="card rot-item rot-item-sube">
+        <div class="rot-item-top">
+          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+          <span class="rot-sube">${p.viejas === 0 ? "NUEVO" : "+" + p.crecimiento.toFixed(0) + "%"}</span>
+        </div>
+        <div class="rot-sub">${
+          p.viejas === 0
+            ? `Empezó a venderse: ${p.recientes} pz en la segunda mitad del periodo. Considera surtir más.`
+            : `Antes ${p.viejas} pz · ahora ${p.recientes} pz. Considera surtir más.`
+        }</div>
+      </div>`).join("");
+  }
+
+  if (r.lista.length === 0) {
+    html += `<div class="empty-hint">Sin ventas en el periodo elegido.</div>`;
+  } else {
+    const totInv = r.lista.reduce((s, p) => s + (p.inversion ?? 0), 0);
+    const totUtil = r.lista.reduce((s, p) => s + (p.utilidad ?? 0), 0);
+    html += `<h3 class="rot-titulo">🛒 Lista de compra <span>(para ${semanas} semana${semanas > 1 ? "s" : ""})</span></h3>`;
+    html += `<div class="card rot-resumen">
+        <div><span>Invertirías</span><b>${fmtMoney(totInv)}</b></div>
+        <div><span>Te dejaría</span><b class="rot-verde">${fmtMoney(totUtil)}</b></div>
+      </div>`;
+    html += r.lista.map(p => `
+      <div class="card rot-item">
+        <div class="rot-item-top">
+          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+          <span class="rot-comprar">${p.sugerido} pz</span>
+        </div>
+        <div class="rot-sub">Vendes ~${p.ritmoSemanal.toFixed(1)} pz/semana${
+          p.inversion !== null ? ` · inviertes ${fmtMoney(p.inversion)} · te deja ${fmtMoney(p.utilidad)}` : " · falta capturar su costo"
+        }</div>
+      </div>`).join("");
+  }
+
+  cont.innerHTML = html;
+  const sel = document.getElementById("resurtir-semanas");
+  if (sel) sel.addEventListener("change", renderResurtido);
+}
+
+// ===================================================================
+// Calculadora de paquetes (para vender en línea)
+// ===================================================================
+//
+// El envío cuesta casi lo mismo mandes 1 pieza o 5 (las paqueterías cobran
+// mínimo 1 kg). Por eso, cada pieza extra en la misma caja es casi pura
+// ganancia. Esta calculadora muestra a cuánto vender cada paquete.
+
+function calcularPaquetes() {
+  const costo = Number(document.getElementById("calc-costo")?.value) || 0;
+  const envio = Number(document.getElementById("calc-envio")?.value) || 0;
+  const base = Number(document.getElementById("calc-precio")?.value) || 0;
+  const cont = document.getElementById("calc-resultado");
+  if (!cont) return;
+
+  if (costo <= 0 || base <= 0) {
+    cont.innerHTML = `<div class="form-hint">Captura el costo y el precio de 1 pieza para ver los paquetes.</div>`;
+    return;
+  }
+
+  // Descuento por volumen: entre más piezas, mejor precio por pieza.
+  const descuentos = [0, 0.08, 0.15, 0.18, 0.22];
+  const filas = descuentos.map((desc, i) => {
+    const n = i + 1;
+    const porPieza = base * (1 - desc);
+    const precio = Math.round((porPieza * n) / 10) * 10;
+    const utilidad = precio - costo * n - envio;
+    return { n, precio, porPieza: precio / n, utilidad, porPza: utilidad / n };
+  });
+
+  cont.innerHTML = `
+    <div class="table-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th>Pzas</th><th>Vende en</th><th>C/u</th><th>Ganas</th></tr></thead>
+        <tbody>
+          ${filas.map(f => `
+            <tr${f.utilidad <= 0 ? ' class="calc-perdida"' : ""}>
+              <td><b>${f.n}</b></td>
+              <td>${fmtMoney(f.precio)}</td>
+              <td>${fmtMoney(f.porPieza)}</td>
+              <td class="${f.utilidad > 0 ? "calc-gana" : "calc-pierde"}">${fmtMoney(f.utilidad)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-hint" style="margin-top:8px">
+      El envío (${fmtMoney(envio)}) se paga <b>una sola vez por paquete</b>, así que cada pieza extra casi no te cuesta más.
+    </div>`;
+}
+
 // ---------- Reporte de ventas en PDF ----------
 //
 // Arma una hoja imprimible con el detalle de cada venta (producto por producto),
@@ -1657,7 +1855,25 @@ async function initApp() {
   const btnReporte = document.getElementById("btn-reporte-pdf");
   if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
   const selRotacion = document.getElementById("rotacion-periodo");
-  if (selRotacion) selRotacion.addEventListener("change", renderRotacion);
+  if (selRotacion) selRotacion.addEventListener("change", () => {
+    renderRotacion();
+    renderResurtido();
+  });
+
+  // Pestañas de la pantalla de Rotación
+  document.querySelectorAll("#screen-rotacion .tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll("#screen-rotacion .tab").forEach(b => b.classList.toggle("activo", b === btn));
+      document.getElementById("rotacion-contenido").classList.toggle("hidden", tab !== "mueve");
+      document.getElementById("resurtir-contenido").classList.toggle("hidden", tab !== "resurtir");
+    });
+  });
+
+  ["calc-costo", "calc-envio", "calc-precio"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", calcularPaquetes);
+  });
 
   showScreen("nota");
 

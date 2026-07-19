@@ -179,6 +179,24 @@ td{padding:8px;border-top:1px solid var(--border)}
 .rot-aviso{background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.28);color:#ffd166;border-radius:10px;padding:9px 11px;font-size:.72rem;margin-bottom:10px}
 .rot-nunca{font-size:.75rem;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 
+/* Pestañas */
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tab{flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--muted);font-family:inherit;font-size:.75rem;font-weight:600;cursor:pointer}
+.tab.activo{background:rgba(43,255,15,.12);border-color:var(--border-accent);color:var(--green)}
+
+.rot-item-alerta{border-color:rgba(255,0,132,.3)}
+.rot-item-sube{border-color:rgba(43,255,15,.3)}
+.rot-sube{font-weight:800;color:var(--green);font-size:.8rem;white-space:nowrap}
+.rot-comprar{font-weight:800;color:var(--green);font-size:.9rem;white-space:nowrap;background:rgba(43,255,15,.12);padding:2px 8px;border-radius:7px}
+
+/* Calculadora de paquetes */
+.calc-campos{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px}
+.calc-campos label{display:flex;flex-direction:column;gap:2px;font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.02em}
+.calc-campos input{margin-bottom:0;padding:7px 8px;font-size:.8rem}
+.calc-gana{color:var(--green);font-weight:700}
+.calc-pierde{color:var(--red);font-weight:700}
+.calc-perdida{opacity:.6}
+
 /* Toast */
 #toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#111;border:1px solid var(--border-accent);color:var(--text);padding:10px 16px;border-radius:10px;font-size:.82rem;opacity:0;pointer-events:none;transition:.25s;z-index:600}
 #toast.show{opacity:1;transform:translate(-50%,0)}

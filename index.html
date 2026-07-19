@@ -66,6 +66,10 @@
 <!-- ============ PANTALLA: ROTACIÓN ============ -->
 <section class="screen" id="screen-rotacion">
   <h2>Rotación de productos</h2>
+  <div class="tabs">
+    <button class="tab activo" data-tab="mueve">📊 Qué se mueve</button>
+    <button class="tab" data-tab="resurtir">🛒 Qué resurtir</button>
+  </div>
   <label class="form-label">Periodo a analizar</label>
   <select id="rotacion-periodo" class="select-campo">
     <option value="30">Últimos 30 días</option>
@@ -74,6 +78,7 @@
     <option value="0">Todo el historial</option>
   </select>
   <div id="rotacion-contenido"></div>
+  <div id="resurtir-contenido" class="hidden"></div>
 </section>
 
 <!-- ============ PANTALLA: AJUSTES ============ -->
@@ -104,6 +109,17 @@
     </select>
     <button class="btn btn-accent btn-block" id="btn-reporte-pdf">📄 Generar reporte</button>
     <div class="form-hint" style="margin-top:6px">Se abre en una pestaña nueva con botones para <b>imprimir / guardar como PDF</b> y para <b>descargar en Excel</b>.</div>
+  </div>
+
+  <div class="card">
+    <h3>Calculadora de paquetes</h3>
+    <div class="form-hint">Para vender en línea. El envío se paga igual mandes 1 pieza o 5, así que te dice a cuánto vender cada paquete y cuánto ganas.</div>
+    <div class="calc-campos">
+      <label>Costo por pieza<input type="number" id="calc-costo" min="0" step="0.01" placeholder="118"></label>
+      <label>Costo de envío<input type="number" id="calc-envio" min="0" step="0.01" value="150"></label>
+      <label>Precio de 1 pza<input type="number" id="calc-precio" min="0" step="0.01" placeholder="299"></label>
+    </div>
+    <div id="calc-resultado"></div>
   </div>
 
   <div class="card">
