@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v16 · 19 jul 2026";
+const APP_VERSION = "v17 · 19 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1094,17 +1094,24 @@ function diasEntre(a, b) {
   return Math.floor((a - b) / (1000 * 60 * 60 * 24));
 }
 
+// Identifica un producto para agrupar ventas: se usa el código si lo tiene
+// (así un producto renombrado no se cuenta dos veces) y si no, el nombre.
+function claveDeProducto(nombre) {
+  return codigoDeProducto(nombre) || String(nombre || "").trim().toLowerCase();
+}
+
 function analizarRotacion(dias) {
   const ahora = new Date();
   const desde = dias > 0 ? new Date(ahora.getTime() - dias * 86400000) : null;
   const ventas = State.tickets.filter(t => !desde || new Date(t.fecha) >= desde);
 
-  // Acumulado por producto (se agrupa por nombre, que es lo que guarda la nota).
+  // Acumulado por producto. Se agrupa por código para que un cambio de nombre
+  // no parta el historial en dos productos distintos.
   const porProducto = new Map();
   for (const t of ventas) {
     const fecha = new Date(t.fecha);
     for (const it of t.items) {
-      const clave = String(it.nombre || "").trim().toLowerCase();
+      const clave = claveDeProducto(it.nombre);
       if (!porProducto.has(clave)) {
         porProducto.set(clave, { nombre: it.nombre, piezas: 0, vendido: 0, utilidad: 0, ultima: null, sinCosto: false });
       }
@@ -1126,7 +1133,7 @@ function analizarRotacion(dias) {
   for (const t of State.tickets) {
     const fecha = new Date(t.fecha);
     for (const it of t.items) {
-      const clave = String(it.nombre || "").trim().toLowerCase();
+      const clave = claveDeProducto(it.nombre);
       const prev = ultimaVentaGlobal.get(clave);
       if (!prev || fecha > prev) ultimaVentaGlobal.set(clave, fecha);
     }
@@ -1139,7 +1146,7 @@ function analizarRotacion(dias) {
   const dormidos = [];
   const nuncaVendidos = [];
   for (const p of State.catalogo) {
-    const clave = String(p.nombre || "").trim().toLowerCase();
+    const clave = claveDeProducto(p.nombre);
     const ultima = ultimaVentaGlobal.get(clave);
     if (!ultima) { nuncaVendidos.push(p); continue; }
     const diasSin = diasEntre(ahora, ultima);
@@ -1235,14 +1242,36 @@ function renderRotacion() {
 // Se genera con la función de imprimir del navegador: en el celular se elige
 // "Guardar como PDF". Así no hace falta ninguna librería externa.
 
-// Si una venta vieja no guardó el costo, se busca el costo actual del producto
-// por nombre. Se marca como estimado para no presentar el dato como exacto.
+// Saca el código del producto del nombre (CAB237, GAR063, EZ-165, BOC060...).
+// Sirve para reconocer un producto aunque se le haya cambiado el nombre:
+// "Cargador Carga Lenta 1 Amp GAR063" y "Cargador de Carga Media 2 Amp GAR063"
+// son el mismo GAR063. Pide 2+ letras y 2+ dígitos para no confundirse con
+// textos como "3 M", "20W", "2 Amp" o "10,000 mAh".
+function codigoDeProducto(nombre) {
+  const encontrados = String(nombre || "").match(/\b[A-Z]{2,}-?\d{2,}\b/g);
+  return encontrados ? encontrados[encontrados.length - 1] : null;
+}
+
+// Si una venta vieja no guardó el costo, se busca el costo actual del producto:
+// primero por nombre exacto y, si no aparece, por su código (así una venta
+// hecha antes de renombrar un producto sigue mostrando costo y utilidad, en
+// vez de salir con "—" en el reporte). Se marca como estimado.
 function costoDeItem(item) {
   const propio = normalizarCosto(item.costo);
   if (propio !== null) return { costo: propio, estimado: false };
-  const enCatalogo = State.catalogo.find(
-    p => String(p.nombre || "").trim().toLowerCase() === String(item.nombre || "").trim().toLowerCase()
+
+  const nombreItem = String(item.nombre || "").trim().toLowerCase();
+  let enCatalogo = State.catalogo.find(
+    p => String(p.nombre || "").trim().toLowerCase() === nombreItem
   );
+
+  if (!enCatalogo) {
+    const codigo = codigoDeProducto(item.nombre);
+    if (codigo) {
+      enCatalogo = State.catalogo.find(p => codigoDeProducto(p.nombre) === codigo);
+    }
+  }
+
   const costoCat = enCatalogo ? normalizarCosto(enCatalogo.costo) : null;
   if (costoCat !== null) return { costo: costoCat, estimado: true };
   return { costo: null, estimado: false };
