@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v22 · 21 jul 2026";
+const APP_VERSION = "v23 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -420,6 +420,23 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
     if (notasCorregidas > 0) {
       persistTickets();
       console.log(`Corrección GAR063: ${notasCorregidas} nota(s) del ${DIA_A_CORREGIR} ajustadas, $${ajusteTotal.toFixed(2)} menos en total.`);
+    }
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: agrega el producto "Audífonos Chicos Colores L22 (5 pz)" que
+// faltaba en el catálogo, si aún no existe (comparado por código L22). El costo
+// queda vacío a propósito: Arthur lo captura en Ajustes → Catálogo.
+// Se ejecuta una sola vez y no toca ningún otro producto.
+(function agregarL22() {
+  const FLAG = "mte_migr_catalogo_2026_07k";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const yaEsta = State.catalogo.some(p => String(p.nombre || "").toLowerCase().includes("l22"));
+    if (!yaEsta) {
+      State.catalogo.push({ id: uid(), nombre: "Audífonos Chicos Colores L22 (5 pz)", precio: 160, costo: null, precioUsuario: 190 });
+      saveJSON(STORE_KEYS.catalogo, State.catalogo);
     }
   }
   localStorage.setItem(FLAG, "1");

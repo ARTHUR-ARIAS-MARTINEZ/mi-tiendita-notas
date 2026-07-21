@@ -53,4 +53,6 @@ const CATALOGO_DEFAULT = [
   { nombre: "Soporte Universal Con Base Giratoria (Base Metal)", precio: 45, costo: 21.5, precioUsuario: 60 },
   { nombre: "Bocina Inalámbrica para Bicicleta (Min. 5 pz)", precio: 210, costo: 122, precioUsuario: 260 },
   { nombre: "Audífonos Deportivos (Min. 5 pz) AC01", precio: 210, costo: 99, precioUsuario: 260 },
+  // Costo pendiente de capturar por Arthur (aún no lo teníamos).
+  { nombre: "Audífonos Chicos Colores L22 (5 pz)", precio: 160, costo: null, precioUsuario: 190 },
 ];
