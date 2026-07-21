@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v21 · 21 jul 2026";
+const APP_VERSION = "v22 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1048,6 +1048,63 @@ function exportarClientesCSV() {
   toast(State.clientes.length + " cliente(s) exportado(s).");
 }
 
+// Exporta las ventas AGRUPADAS POR DÍA Y PRODUCTO, en el formato que entiende
+// la Bitácora de Ventas (que registra piezas por producto por día, no tickets
+// sueltos). El archivo se importa en la Bitácora con "Importar ventas de la app".
+function exportarParaBitacora() {
+  if (State.tickets.length === 0) { toast("Todavía no hay ventas que exportar."); return; }
+
+  const porDia = new Map(); // "YYYY-MM-DD" -> Map(clave -> {codigo,nombre,cantidad,importe})
+  for (const t of State.tickets) {
+    const dia = dayKeyFromDate(new Date(t.fecha));
+    if (!porDia.has(dia)) porDia.set(dia, { notas: 0, total: 0, prods: new Map() });
+    const d = porDia.get(dia);
+    d.notas += 1;
+    d.total += Number(t.total) || 0;
+    for (const it of t.items) {
+      // Se agrupa por código (CAB237, GAR063…) para que un cambio de nombre
+      // no parta el mismo producto en dos.
+      const clave = claveDeProducto(it.nombre);
+      if (!d.prods.has(clave)) {
+        d.prods.set(clave, {
+          codigo: codigoDeProducto(it.nombre) || null,
+          nombre: it.nombre, cantidad: 0, importe: 0,
+        });
+      }
+      const p = d.prods.get(clave);
+      const cant = Number(it.cantidad) || 0;
+      p.cantidad += cant;
+      p.importe += cant * (Number(it.precio) || 0);
+    }
+  }
+
+  const dias = [...porDia.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([fecha, d]) => ({
+      fecha,
+      notas: d.notas,
+      totalVendido: Math.round(d.total * 100) / 100,
+      productos: [...d.prods.values()].sort((a, b) => b.cantidad - a.cantidad),
+    }));
+
+  const datos = {
+    origen: "notas-de-venta",   // firma para que la Bitácora reconozca el archivo
+    formato: 1,
+    exportado: new Date().toISOString(),
+    negocio: State.negocio.nombre,
+    dias,
+  };
+
+  const blob = new Blob([JSON.stringify(datos, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ventas-para-bitacora-" + new Date().toISOString().slice(0, 10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(dias.length + " día(s) de ventas exportados.");
+}
+
 function importarDatos(ev) {
   const file = ev.target.files[0];
   if (!file) return;
@@ -1981,6 +2038,8 @@ async function initApp() {
   document.getElementById("btn-desconectar-impresora").addEventListener("click", desconectarImpresora);
   document.getElementById("btn-exportar").addEventListener("click", exportarDatos);
   document.getElementById("btn-exportar-clientes").addEventListener("click", exportarClientesCSV);
+  const btnBitacora = document.getElementById("btn-exportar-bitacora");
+  if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
   document.getElementById("input-importar").addEventListener("change", importarDatos);
   document.getElementById("pin-toggle").addEventListener("change", togglePin);
 
