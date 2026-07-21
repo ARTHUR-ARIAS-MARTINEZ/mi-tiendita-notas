@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v20 · 21 jul 2026";
+const APP_VERSION = "v21 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1899,6 +1899,67 @@ function buscarActualizacion() {
   }).catch(() => toast("No se pudo buscar actualización."));
 }
 
+// ---------- Instalar la app en el celular ----------
+//
+// Chrome avisa con "beforeinstallprompt" cuando la app se puede instalar.
+// Guardamos ese aviso y lo disparamos cuando Arthur toca el botón, para que
+// no tenga que buscar la opción escondida en el menú del navegador.
+
+let promptInstalacion = null;
+
+function appYaInstalada() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function actualizarTarjetaInstalar() {
+  const card = document.getElementById("card-instalar");
+  const btn = document.getElementById("btn-instalar");
+  const texto = document.getElementById("instalar-texto");
+  if (!card || !btn || !texto) return;
+
+  if (appYaInstalada()) {
+    card.classList.add("hidden"); // ya está instalada: no estorbar
+    return;
+  }
+  card.classList.remove("hidden");
+
+  if (promptInstalacion) {
+    btn.disabled = false;
+    btn.textContent = "📲 Instalar aplicación";
+  } else {
+    // Sin aviso del navegador (iPhone, o ya se usó): explicar la vía manual.
+    btn.disabled = true;
+    btn.textContent = "Instalar desde el menú del navegador";
+    texto.innerHTML =
+      'Instálala para que viva en tu celular y funcione <b>sin internet</b>.<br>' +
+      'Abre el menú de <b>⋮ Chrome</b> (arriba a la derecha) y elige ' +
+      '<b>“Instalar aplicación”</b> o <b>“Agregar a pantalla de inicio”</b>.';
+  }
+}
+
+window.addEventListener("beforeinstallprompt", (ev) => {
+  ev.preventDefault();       // evitamos el aviso automático de Chrome
+  promptInstalacion = ev;    // y lo usamos con nuestro botón
+  actualizarTarjetaInstalar();
+});
+
+window.addEventListener("appinstalled", () => {
+  promptInstalacion = null;
+  toast("¡App instalada! Ábrela desde su ícono.");
+  actualizarTarjetaInstalar();
+});
+
+async function instalarApp() {
+  if (!promptInstalacion) { actualizarTarjetaInstalar(); return; }
+  promptInstalacion.prompt();
+  try {
+    const { outcome } = await promptInstalacion.userChoice;
+    if (outcome !== "accepted") toast("Instalación cancelada.");
+  } catch (e) { /* el navegador cerró el diálogo */ }
+  promptInstalacion = null; // el aviso solo sirve una vez
+  actualizarTarjetaInstalar();
+}
+
 // ---------- Arranque ----------
 
 async function initApp() {
@@ -1931,6 +1992,9 @@ async function initApp() {
   if (versionEl) versionEl.textContent = "Versión " + APP_VERSION;
   const btnActualizar = document.getElementById("btn-buscar-actualizacion");
   if (btnActualizar) btnActualizar.addEventListener("click", buscarActualizacion);
+  const btnInstalar = document.getElementById("btn-instalar");
+  if (btnInstalar) btnInstalar.addEventListener("click", instalarApp);
+  actualizarTarjetaInstalar();
   const btnReporte = document.getElementById("btn-reporte-pdf");
   if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
   const selReportePeriodo = document.getElementById("reporte-periodo");

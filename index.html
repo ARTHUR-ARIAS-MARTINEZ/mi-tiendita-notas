@@ -85,6 +85,18 @@
 <section class="screen" id="screen-ajustes">
   <h2>Ajustes</h2>
 
+  <!-- Instalar la app en el celular. Se muestra solo si aún NO está instalada. -->
+  <div class="card hidden" id="card-instalar">
+    <h3>📲 Instalar la app en este celular</h3>
+    <div class="form-hint" id="instalar-texto">
+      Instálala para que viva en tu celular como cualquier otra app: se abre desde su
+      ícono y funciona <b>sin internet</b>.
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn btn-accent btn-block" id="btn-instalar">📲 Instalar aplicación</button>
+    </div>
+  </div>
+
   <div class="card">
     <h3>Datos del negocio (aparecen en el ticket)</h3>
     <form id="form-negocio">
