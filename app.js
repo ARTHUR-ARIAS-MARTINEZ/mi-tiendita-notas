@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v18 · 19 jul 2026";
+const APP_VERSION = "v19 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -365,6 +365,62 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       if (normalizarCosto(p.precioUsuario) === usuarioViejo) { p.precioUsuario = usuarioNuevo; cambió = true; }
     }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: baja TEMPORALMENTE el Cargador de Carga Media 2 Amp GAR063 de
+// $40 a $35 (precio usuario $55 -> $50), mientras se agota el inventario
+// viejo. Cuando llegue el cargador nuevo, Arthur lo volverá a subir a $40 a
+// mano en Ajustes > Catálogo (esta migración no se repetirá, solo corre una
+// vez, y solo cambia el precio si sigue en $40: si ya lo ajustaste, se respeta).
+(function bajarPrecioGAR063Temporal() {
+  const FLAG = "mte_migr_precios_2026_07j";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (String(p.nombre || "").trim().toLowerCase() !== "cargador de carga media 2 amp gar063") continue;
+      if (Number(p.precio) === 40) { p.precio = 35; cambió = true; }
+      if (normalizarCosto(p.precioUsuario) === 55) { p.precioUsuario = 50; cambió = true; }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Corrección única: el 20 de julio de 2026 se vendió el Cargador de Carga
+// Media 2 Amp GAR063 a $40 (precio que Arthur ya decidió revertir a $35 para
+// esos días). Se corrigen SOLO las notas de ESE día, SOLO las líneas de ese
+// producto que sigan en $40, y se recalcula el total de cada nota afectada.
+// No toca ningún otro día ni ningún otro producto. Se ejecuta una sola vez.
+(function corregirPrecioGAR063EnNotasDelDia() {
+  const FLAG = "mte_migr_notas_2026_07_20_gar063";
+  if (localStorage.getItem(FLAG)) return;
+  const DIA_A_CORREGIR = "2026-07-20";
+  const PRECIO_VIEJO = 40, PRECIO_NUEVO = 35;
+  if (Array.isArray(State.tickets)) {
+    let notasCorregidas = 0, ajusteTotal = 0;
+    for (const t of State.tickets) {
+      if (dayKeyFromDate(new Date(t.fecha)) !== DIA_A_CORREGIR) continue;
+      let tocada = false;
+      for (const it of t.items) {
+        if (codigoDeProducto(it.nombre) !== "GAR063") continue;
+        if (Number(it.precio) !== PRECIO_VIEJO) continue;
+        it.precio = PRECIO_NUEVO;
+        tocada = true;
+      }
+      if (tocada) {
+        const totalViejo = t.total;
+        t.total = t.items.reduce((acc, it) => acc + (Number(it.precio) || 0) * (Number(it.cantidad) || 0), 0);
+        ajusteTotal += totalViejo - t.total;
+        notasCorregidas++;
+      }
+    }
+    if (notasCorregidas > 0) {
+      persistTickets();
+      console.log(`Corrección GAR063: ${notasCorregidas} nota(s) del ${DIA_A_CORREGIR} ajustadas, $${ajusteTotal.toFixed(2)} menos en total.`);
+    }
   }
   localStorage.setItem(FLAG, "1");
 })();
@@ -1476,6 +1532,12 @@ function costoDeItem(item) {
 }
 
 function ventasDelPeriodo(periodo) {
+  if (periodo === "dia") {
+    const valor = document.getElementById("reporte-fecha")?.value; // "YYYY-MM-DD"
+    if (!valor) return [];
+    const lista = State.tickets.filter(t => dayKeyFromDate(new Date(t.fecha)) === valor);
+    return lista.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  }
   const ahora = new Date();
   let desde = null;
   if (periodo === "semana") {
@@ -1491,15 +1553,32 @@ function ventasDelPeriodo(periodo) {
   return lista.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 }
 
+// Etiqueta legible para un valor de <input type="date"> ("YYYY-MM-DD"),
+// construida en hora local para que no se recorra un día por huso horario.
+function etiquetaDiaEspecifico(valorFecha) {
+  const [y, m, d] = valorFecha.split("-").map(Number);
+  let base = new Date(y, m - 1, d).toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
 function generarReportePDF() {
   const periodo = document.getElementById("reporte-periodo")?.value || "todo";
+  const fechaEspecifica = document.getElementById("reporte-fecha")?.value || "";
+
+  if (periodo === "dia" && !fechaEspecifica) {
+    toast("Elige primero el día del reporte.");
+    return;
+  }
+
   const ventas = ventasDelPeriodo(periodo);
   if (ventas.length === 0) {
     toast("No hay ventas en ese periodo.");
     return;
   }
 
-  const etiquetaPeriodo = { todo: "Todas las ventas", semana: "Esta semana (lunes a domingo)", mes: "Este mes" }[periodo];
+  const etiquetaPeriodo = periodo === "dia"
+    ? etiquetaDiaEspecifico(fechaEspecifica)
+    : { todo: "Todas las ventas", semana: "Esta semana (lunes a domingo)", mes: "Este mes" }[periodo];
 
   let totVenta = 0, totCosto = 0, totUtilidad = 0, totVentaConCosto = 0;
   let hayEstimados = false, haySinCosto = false;
@@ -1621,7 +1700,7 @@ function generarReportePDF() {
   filasCSV.push(["", "", "", "", "", "", "", "Costo", totCosto, ""]);
   filasCSV.push(["", "", "", "", "", "", "", "Utilidad bruta", totUtilidad, ""]);
 
-  const fechaArchivo = new Date().toISOString().slice(0, 10);
+  const fechaArchivo = periodo === "dia" ? fechaEspecifica : new Date().toISOString().slice(0, 10);
   abrirVentanaDeReporte(
     "Reporte de ventas · " + etiquetaPeriodo,
     cuerpoReporte,
@@ -1854,6 +1933,14 @@ async function initApp() {
   if (btnActualizar) btnActualizar.addEventListener("click", buscarActualizacion);
   const btnReporte = document.getElementById("btn-reporte-pdf");
   if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
+  const selReportePeriodo = document.getElementById("reporte-periodo");
+  const inputReporteFecha = document.getElementById("reporte-fecha");
+  if (selReportePeriodo && inputReporteFecha) {
+    if (!inputReporteFecha.value) inputReporteFecha.value = dayKeyFromDate(new Date());
+    selReportePeriodo.addEventListener("change", () => {
+      inputReporteFecha.classList.toggle("hidden", selReportePeriodo.value !== "dia");
+    });
+  }
   const selRotacion = document.getElementById("rotacion-periodo");
   if (selRotacion) selRotacion.addEventListener("change", () => {
     renderRotacion();
