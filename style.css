@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+/* Las fuentes viven DENTRO de la app (fonts/), no se bajan de internet:
+   así se ve igual con o sin conexión. Ver fonts.css. */
+@import url('fonts.css');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#06070d;--card:rgba(15,18,32,.72);--card2:rgba(28,33,56,.6);

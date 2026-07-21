@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v19 · 21 jul 2026";
+const APP_VERSION = "v20 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1974,7 +1974,9 @@ async function initApp() {
       window.location.reload();
     });
 
-    navigator.serviceWorker.register("sw.js").then((reg) => {
+    // updateViaCache:"none" -> el navegador nunca sirve el sw.js de su caché
+    // interna, así una versión nueva SIEMPRE se detecta al abrir con internet.
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
       // Buscar actualizaciones cada vez que se abre la app.
       reg.update();
       reg.addEventListener("updatefound", () => {
