@@ -10,7 +10,7 @@
 // internet, el navegador detecta el service worker nuevo, descarga todos los
 // archivos de la versión nueva y la app se recarga sola ya actualizada.
 // Sin internet, simplemente sigue funcionando con la versión que ya tiene.
-const CACHE = "mte-notas-v23";
+const CACHE = "mte-notas-v24";
 
 const ASSETS = [
   "./",

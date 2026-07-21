@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v23 · 21 jul 2026";
+const APP_VERSION = "v24 · 21 jul 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -435,9 +435,25 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   if (Array.isArray(State.catalogo)) {
     const yaEsta = State.catalogo.some(p => String(p.nombre || "").toLowerCase().includes("l22"));
     if (!yaEsta) {
-      State.catalogo.push({ id: uid(), nombre: "Audífonos Chicos Colores L22 (5 pz)", precio: 160, costo: null, precioUsuario: 190 });
+      State.catalogo.push({ id: uid(), nombre: "Audífonos Chicos Colores L22 (5 pz)", precio: 160, costo: 89, precioUsuario: 190 });
       saveJSON(STORE_KEYS.catalogo, State.catalogo);
     }
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: captura el costo del L22 ($89) en celulares que ya lo habían
+// agregado sin costo. Solo lo pone si sigue vacío (respeta si tú ya lo capturaste).
+(function costoL22() {
+  const FLAG = "mte_migr_catalogo_2026_07l";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (!String(p.nombre || "").toLowerCase().includes("l22")) continue;
+      if (normalizarCosto(p.costo) === null) { p.costo = 89; cambió = true; }
+    }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
   localStorage.setItem(FLAG, "1");
 })();
@@ -934,6 +950,16 @@ function guardarNegocio(ev) {
   State.negocio.slogan = document.getElementById("aj-slogan").value.trim();
   persistNegocio();
   toast("Datos del negocio guardados.");
+}
+
+// Muestra/oculta el catálogo de productos (viene colapsado para no llenar Ajustes).
+function toggleCatalogo() {
+  const btn = document.getElementById("btn-toggle-catalogo");
+  const panel = document.getElementById("catalogo-panel");
+  if (!btn || !panel) return;
+  const abrir = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !abrir);
+  btn.setAttribute("aria-expanded", abrir ? "true" : "false");
 }
 
 function renderProductosAjustes() {
@@ -2057,6 +2083,8 @@ async function initApp() {
   document.getElementById("btn-exportar-clientes").addEventListener("click", exportarClientesCSV);
   const btnBitacora = document.getElementById("btn-exportar-bitacora");
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
+  const btnCatalogo = document.getElementById("btn-toggle-catalogo");
+  if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
   document.getElementById("input-importar").addEventListener("change", importarDatos);
   document.getElementById("pin-toggle").addEventListener("change", togglePin);
 

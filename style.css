@@ -125,6 +125,11 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 .prod-admin-linea2 input,.prod-nuevo-precios input{margin-bottom:0;padding:7px 8px;font-size:.8rem}
 .prod-admin-util{font-size:.68rem;color:var(--green);margin-top:6px}
 
+/* Encabezado de sección colapsable (ej. Catálogo de productos) */
+.collapse-header{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:none;border:none;color:var(--text);font-family:var(--font-h,inherit);font-size:.98rem;font-weight:600;cursor:pointer;padding:0}
+.collapse-caret{color:var(--muted);transition:transform .2s;font-size:.8rem}
+.collapse-header[aria-expanded="true"] .collapse-caret{transform:rotate(180deg)}
+
 .prod-nuevo-form{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
 .prod-nuevo-precios{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
 .section-sep{border-top:1px dashed var(--border);margin:16px 0}

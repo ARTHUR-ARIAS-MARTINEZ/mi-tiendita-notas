@@ -126,6 +126,37 @@
   </div>
 
   <div class="card">
+    <h3>🔗 Pasar ventas a la Bitácora</h3>
+    <div class="form-hint">Descarga tus ventas agrupadas por día y producto. Ese archivo se carga en tu <b>Bitácora de Ventas</b> (en la compu) con el botón "Importar ventas de la app".</div>
+    <div style="margin-top:6px">
+      <button class="btn btn-accent btn-sm" id="btn-exportar-bitacora">📤 Exportar ventas para Bitácora</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <button type="button" class="collapse-header" id="btn-toggle-catalogo" aria-expanded="false">
+      <span>📦 Catálogo de productos</span>
+      <span class="collapse-caret" id="catalogo-caret">▼</span>
+    </button>
+    <div id="catalogo-panel" class="hidden" style="margin-top:12px">
+      <div id="productos-admin-list"></div>
+      <form id="form-nuevo-producto" class="prod-nuevo-form">
+        <input type="text" id="np-nombre" placeholder="Producto nuevo">
+        <div class="prod-nuevo-precios">
+          <label>Costo mío<input type="number" id="np-costo" placeholder="—" min="0" step="0.01"></label>
+          <label>Precio cliente<input type="number" id="np-precio" placeholder="—" min="0" step="0.01"></label>
+          <label>Precio usuario<input type="number" id="np-usuario" placeholder="—" min="0" step="0.01"></label>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">➕ Agregar producto</button>
+      </form>
+      <div class="form-hint" style="margin-top:8px">
+        <b>Costo mío</b>: lo que tú pagas. <b>Precio cliente</b>: lo que te paga la tiendita (es el que cobra la app).
+        <b>Precio usuario</b>: el precio de etiqueta al que la tiendita se lo vende al consumidor final (solo informativo).
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <h3>Calculadora de paquetes</h3>
     <div class="form-hint">Para vender en línea. El envío se paga igual mandes 1 pieza o 5, así que te dice a cuánto vender cada paquete y cuánto ganas.</div>
     <div class="calc-campos">
@@ -145,24 +176,6 @@
       <button class="btn btn-ghost btn-sm" id="btn-desconectar-impresora">Desconectar</button>
     </div>
     <div class="print-status" id="printer-status"></div>
-  </div>
-
-  <div class="card">
-    <h3>Catálogo de productos</h3>
-    <div id="productos-admin-list"></div>
-    <form id="form-nuevo-producto" class="prod-nuevo-form">
-      <input type="text" id="np-nombre" placeholder="Producto nuevo">
-      <div class="prod-nuevo-precios">
-        <label>Costo mío<input type="number" id="np-costo" placeholder="—" min="0" step="0.01"></label>
-        <label>Precio cliente<input type="number" id="np-precio" placeholder="—" min="0" step="0.01"></label>
-        <label>Precio usuario<input type="number" id="np-usuario" placeholder="—" min="0" step="0.01"></label>
-      </div>
-      <button class="btn btn-secondary btn-sm" type="submit">➕ Agregar producto</button>
-    </form>
-    <div class="form-hint" style="margin-top:8px">
-      <b>Costo mío</b>: lo que tú pagas. <b>Precio cliente</b>: lo que te paga la tiendita (es el que cobra la app).
-      <b>Precio usuario</b>: el precio de etiqueta al que la tiendita se lo vende al consumidor final (solo informativo).
-    </div>
   </div>
 
   <div class="card">
@@ -187,14 +200,6 @@
         ⬆️ Importar respaldo
         <input type="file" id="input-importar" accept="application/json" style="display:none">
       </label>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🔗 Pasar ventas a la Bitácora</h3>
-    <div class="form-hint">Descarga tus ventas agrupadas por día y producto. Ese archivo se carga en tu <b>Bitácora de Ventas</b> (en la compu) con el botón "Importar ventas de la app".</div>
-    <div style="margin-top:6px">
-      <button class="btn btn-accent btn-sm" id="btn-exportar-bitacora">📤 Exportar ventas para Bitácora</button>
     </div>
   </div>
 
