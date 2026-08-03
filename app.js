@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v24 · 21 jul 2026";
+const APP_VERSION = "v25 · 3 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1638,6 +1638,17 @@ function ventasDelPeriodo(periodo) {
     const lista = State.tickets.filter(t => dayKeyFromDate(new Date(t.fecha)) === valor);
     return lista.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
   }
+  if (periodo === "rango") {
+    let d = document.getElementById("reporte-desde")?.value;
+    let h = document.getElementById("reporte-hasta")?.value;
+    if (!d || !h) return [];
+    if (d > h) { const tmp = d; d = h; h = tmp; } // por si los invierte
+    const lista = State.tickets.filter(t => {
+      const k = dayKeyFromDate(new Date(t.fecha));
+      return k >= d && k <= h; // ambos días incluidos
+    });
+    return lista.slice().sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+  }
   const ahora = new Date();
   let desde = null;
   if (periodo === "semana") {
@@ -1661,12 +1672,27 @@ function etiquetaDiaEspecifico(valorFecha) {
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
 
+// Etiqueta para un rango de fechas ("Del 13 al 17 de julio de 2026").
+function etiquetaRango(desde, hasta) {
+  if (desde > hasta) { const t = desde; desde = hasta; hasta = t; }
+  const f = (v) => { const [y, m, d] = v.split("-").map(Number); return new Date(y, m - 1, d); };
+  const d1 = f(desde), d2 = f(hasta);
+  const opt = { day: "numeric", month: "long", year: "numeric" };
+  return "Del " + d1.toLocaleDateString("es-MX", opt) + " al " + d2.toLocaleDateString("es-MX", opt);
+}
+
 function generarReportePDF() {
   const periodo = document.getElementById("reporte-periodo")?.value || "todo";
   const fechaEspecifica = document.getElementById("reporte-fecha")?.value || "";
+  const rangoDesde = document.getElementById("reporte-desde")?.value || "";
+  const rangoHasta = document.getElementById("reporte-hasta")?.value || "";
 
   if (periodo === "dia" && !fechaEspecifica) {
     toast("Elige primero el día del reporte.");
+    return;
+  }
+  if (periodo === "rango" && (!rangoDesde || !rangoHasta)) {
+    toast("Elige la fecha Desde y la fecha Hasta.");
     return;
   }
 
@@ -1678,6 +1704,8 @@ function generarReportePDF() {
 
   const etiquetaPeriodo = periodo === "dia"
     ? etiquetaDiaEspecifico(fechaEspecifica)
+    : periodo === "rango"
+    ? etiquetaRango(rangoDesde, rangoHasta)
     : { todo: "Todas las ventas", semana: "Esta semana (lunes a domingo)", mes: "Este mes" }[periodo];
 
   let totVenta = 0, totCosto = 0, totUtilidad = 0, totVentaConCosto = 0;
@@ -1800,7 +1828,9 @@ function generarReportePDF() {
   filasCSV.push(["", "", "", "", "", "", "", "Costo", totCosto, ""]);
   filasCSV.push(["", "", "", "", "", "", "", "Utilidad bruta", totUtilidad, ""]);
 
-  const fechaArchivo = periodo === "dia" ? fechaEspecifica : new Date().toISOString().slice(0, 10);
+  const fechaArchivo = periodo === "dia" ? fechaEspecifica
+    : periodo === "rango" ? (rangoDesde + "_a_" + rangoHasta)
+    : new Date().toISOString().slice(0, 10);
   abrirVentanaDeReporte(
     "Reporte de ventas · " + etiquetaPeriodo,
     cuerpoReporte,
@@ -2103,10 +2133,18 @@ async function initApp() {
   if (btnReporte) btnReporte.addEventListener("click", generarReportePDF);
   const selReportePeriodo = document.getElementById("reporte-periodo");
   const inputReporteFecha = document.getElementById("reporte-fecha");
+  const boxRango = document.getElementById("reporte-rango");
   if (selReportePeriodo && inputReporteFecha) {
-    if (!inputReporteFecha.value) inputReporteFecha.value = dayKeyFromDate(new Date());
+    const hoy = dayKeyFromDate(new Date());
+    if (!inputReporteFecha.value) inputReporteFecha.value = hoy;
+    const inpDesde = document.getElementById("reporte-desde");
+    const inpHasta = document.getElementById("reporte-hasta");
+    if (inpDesde && !inpDesde.value) inpDesde.value = hoy;
+    if (inpHasta && !inpHasta.value) inpHasta.value = hoy;
     selReportePeriodo.addEventListener("change", () => {
+      // Al elegir una opción, el menú se cierra y aparece el selector que toca.
       inputReporteFecha.classList.toggle("hidden", selReportePeriodo.value !== "dia");
+      if (boxRango) boxRango.classList.toggle("hidden", selReportePeriodo.value !== "rango");
     });
   }
   const selRotacion = document.getElementById("rotacion-periodo");
