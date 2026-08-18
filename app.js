@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v26 · 3 ago 2026";
+const APP_VERSION = "v27 · 18 ago 2026 · Vitrina";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -17,6 +17,8 @@ const STORE_KEYS = {
   folioSeq: "mte_folio_seq",
   pinHash: "mte_pin_hash",
   pinEnabled: "mte_pin_enabled",
+  stock: "mte_stock",
+  fotos: "mte_fotos",
 };
 
 const DEFAULT_NEGOCIO = {
@@ -49,8 +51,18 @@ const State = {
   clientes: loadJSON(STORE_KEYS.clientes, []),
   tickets: loadJSON(STORE_KEYS.tickets, []),
   cart: [], // { id, nombre, precio, cantidad }
+  // Piezas de la venta en curso que YA salieron impresas en un ticket y por
+  // lo tanto ya se descontaron de las existencias: { idProducto: piezas }.
+  // Evita descontar dos veces si vuelves a imprimir la misma nota.
+  cobrado: {},
   clienteSeleccionado: null, // id de cliente o null
   clienteNombreLibre: "",
+  // Existencias que llevas en la ruta, para la Vitrina: { idProducto: piezas }.
+  // Solo aplica a los productos NOVEDOSOS; los 4 principales van a
+  // consignación y siempre están disponibles.
+  stock: loadJSON(STORE_KEYS.stock, {}),
+  // Fotos que tú le tomaste o subiste a un producto: { idProducto: dataURL }.
+  fotos: loadJSON(STORE_KEYS.fotos, {}),
 };
 
 // ---------- Blindaje de los datos guardados ----------
@@ -116,6 +128,25 @@ if (!State.catalogo) {
 // memoria (no se guarda) para que las pantallas no truenen.
 if (!Array.isArray(State.clientes)) State.clientes = [];
 if (!Array.isArray(State.tickets)) State.tickets = [];
+
+// Existencias y fotos deben ser objetos simples { id: valor }. Se reparan sin
+// tirar nada: una entrada rara se descarta, las buenas se conservan.
+function sanearMapa(valor, normalizarValor) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return {};
+  const limpio = {};
+  for (const [clave, v] of Object.entries(valor)) {
+    const bueno = normalizarValor(v);
+    if (bueno !== null) limpio[clave] = bueno;
+  }
+  return limpio;
+}
+function piezasValidas(v) {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+State.stock = sanearMapa(State.stock, piezasValidas);
+State.fotos = sanearMapa(State.fotos, v =>
+  (typeof v === "string" && v.startsWith("data:image/")) ? v : null);
 
 // Los datos del negocio deben ser un objeto (los usa el ticket impreso).
 if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.negocio)) {
@@ -462,6 +493,13 @@ function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
 function persistTickets() { saveJSON(STORE_KEYS.tickets, State.tickets); }
+function persistStock() { saveJSON(STORE_KEYS.stock, State.stock); }
+// Las fotos son lo único que puede llenar la memoria del navegador, así que
+// aquí sí se avisa si no cupo (devuelve false) en vez de tronar la app.
+function persistFotos() {
+  try { saveJSON(STORE_KEYS.fotos, State.fotos); return true; }
+  catch (e) { return false; }
+}
 
 function nextFolio() {
   const n = loadJSON(STORE_KEYS.folioSeq, 0) + 1;
@@ -479,6 +517,7 @@ function showScreen(name) {
   if (name === "rotacion") { renderRotacion(); renderResurtido(); }
   if (name === "ajustes") renderAjustes();
   if (name === "nota") renderNota();
+  if (name === "vitrina") renderVitrina();
 }
 
 // ===================================================================
@@ -491,28 +530,36 @@ function renderNota() {
   renderCarrito();
 }
 
+// El bloque de cliente vive en DOS lugares: en la pantalla Nota y en el cierre
+// de venta de la Vitrina. Se pintan todos con lo mismo para que nunca se
+// contradigan (la venta es una sola, se arme donde se arme).
 function renderClienteBox() {
-  const box = document.getElementById("cliente-box");
   const sel = State.clienteSeleccionado ? State.clientes.find(c => c.id === State.clienteSeleccionado) : null;
-  if (sel) {
-    box.innerHTML = `
-      <div class="cliente-chip">
-        <div>
-          <div class="cliente-chip-nombre">${escapeHtml(sel.nombre)}</div>
-          ${sel.telefono ? `<div class="cliente-chip-sub">${escapeHtml(sel.telefono)}</div>` : ""}
-        </div>
-        <button class="btn btn-ghost btn-sm" onclick="quitarCliente()">Quitar</button>
-      </div>`;
-  } else {
-    box.innerHTML = `
-      <input type="text" id="cliente-input" placeholder="Nombre del cliente / tiendita (opcional)"
-        value="${escapeHtml(State.clienteNombreLibre)}" list="clientes-datalist"
-        oninput="onClienteInput(this.value)">
-      <datalist id="clientes-datalist">
-        ${State.clientes.map(c => `<option value="${escapeHtml(c.nombre)}">`).join("")}
-      </datalist>
-      <div class="form-hint">Déjalo vacío para "Público en general", o escribe/selecciona una tiendita guardada.</div>`;
-  }
+  document.querySelectorAll("[data-cliente-box]").forEach((box, i) => {
+    if (sel) {
+      box.innerHTML = `
+        <div class="cliente-chip">
+          <div>
+            <div class="cliente-chip-nombre">${escapeHtml(sel.nombre)}</div>
+            ${sel.telefono ? `<div class="cliente-chip-sub">${escapeHtml(sel.telefono)}</div>` : ""}
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="quitarCliente()">Quitar</button>
+        </div>`;
+    } else {
+      // El id del datalist tiene que ser único por bloque (si se repite, el
+      // navegador solo le hace caso al primero y el segundo se queda sin
+      // sugerencias de tienditas).
+      const listaId = "clientes-datalist-" + i;
+      box.innerHTML = `
+        <input type="text" placeholder="Nombre del cliente / tiendita (opcional)"
+          value="${escapeHtml(State.clienteNombreLibre)}" list="${listaId}"
+          oninput="onClienteInput(this.value)">
+        <datalist id="${listaId}">
+          ${State.clientes.map(c => `<option value="${escapeHtml(c.nombre)}">`).join("")}
+        </datalist>
+        <div class="form-hint">Déjalo vacío para "Público en general", o escribe/selecciona una tiendita guardada.</div>`;
+    }
+  });
 }
 
 function onClienteInput(value) {
@@ -534,6 +581,68 @@ const CODIGOS_PRODUCTOS_PRINCIPALES = ["CAB237", "CAB238", "EZ-165", "GAR063"];
 function esProductoPrincipal(nombre) {
   const n = String(nombre || "").toUpperCase();
   return CODIGOS_PRODUCTOS_PRINCIPALES.some(cod => n.includes(cod));
+}
+
+// ===================================================================
+// Fotos y existencias  (las usan la Vitrina y Ajustes)
+// ===================================================================
+
+// Foto del producto: primero la que TÚ le pusiste, luego la de la carpeta
+// "productos/" (por código y, si no trae, por palabras del nombre).
+// Devuelve null si no tiene ninguna: la Vitrina muestra entonces un recuadro
+// con el nombre, nunca se rompe.
+function fotoDe(p) {
+  if (!p) return null;
+  const propia = State.fotos[p.id];
+  if (propia) return propia;
+  const codigo = codigoDeProducto(p.nombre);
+  if (codigo && FOTOS_POR_CODIGO[codigo]) return CARPETA_FOTOS + FOTOS_POR_CODIGO[codigo];
+  const nombre = soloAlfanumerico(normalizarTexto(p.nombre));
+  const regla = FOTOS_POR_PALABRAS.find(r => r.palabras.every(w => nombre.includes(w)));
+  return regla ? CARPETA_FOTOS + regla.archivo : null;
+}
+
+// Los 4 principales van a consignación: siempre están disponibles, no se
+// llevan cuenta de existencias. Por eso valen "sin límite".
+const SIN_LIMITE = Infinity;
+
+function stockDe(p) {
+  if (esProductoPrincipal(p.nombre)) return SIN_LIMITE;
+  const n = State.stock[p.id];
+  return Number.isFinite(n) ? n : 0;
+}
+
+function fijarStock(id, piezas) {
+  const n = Math.max(0, Math.floor(Number(piezas) || 0));
+  State.stock[id] = n;
+  persistStock();
+}
+
+// Piezas de ese producto que ya van apartadas en la venta actual.
+function enCarrito(id) {
+  const it = State.cart.find(x => x.id === id);
+  return it ? it.cantidad : 0;
+}
+
+// Lo que TODAVÍA se puede agregar a esta venta sin pasarse de lo que llevas.
+// Las piezas ya impresas no se restan otra vez: esas ya salieron del stock.
+function disponibleParaVender(p) {
+  const s = stockDe(p);
+  if (s === SIN_LIMITE) return SIN_LIMITE;
+  const porDescontar = Math.max(0, enCarrito(p.id) - (State.cobrado[p.id] || 0));
+  return Math.max(0, s - porDescontar);
+}
+
+// Productos que se exhiben en la Vitrina, en orden:
+//   1) los 4 principales (siempre, son los de consignación)
+//   2) los novedosos que SÍ llevas (existencia mayor a 0)
+// Un novedoso que ya está en el carrito se queda visible aunque su existencia
+// llegue a 0 con esta misma venta, para poder corregir la cantidad.
+function productosDeVitrina() {
+  const principales = State.catalogo.filter(p => esProductoPrincipal(p.nombre));
+  const novedosos = State.catalogo.filter(p =>
+    !esProductoPrincipal(p.nombre) && (stockDe(p) > 0 || enCarrito(p.id) > 0));
+  return principales.concat(novedosos);
 }
 
 function renderCatalogoPicker(filter) {
@@ -560,28 +669,50 @@ function renderCatalogoPicker(filter) {
     resto.map(p => tarjeta(p, false)).join("");
 }
 
+// Aviso cuando se quiere vender más de lo que traes en la ruta. Los 4
+// principales van a consignación, así que nunca topan.
+function avisarSinExistencia(p) {
+  const s = stockDe(p);
+  toast(s === 0
+    ? "Ya no llevas piezas de " + p.nombre + "."
+    : "Solo llevas " + s + " pieza(s) de " + p.nombre + ".");
+}
+
 function agregarAlCarrito(prodId) {
   const p = State.catalogo.find(x => x.id === prodId);
   if (!p) return;
+  if (disponibleParaVender(p) < 1) { avisarSinExistencia(p); return; }
   const existing = State.cart.find(x => x.id === prodId);
   if (existing) existing.cantidad += 1;
   // Se guarda el costo del momento para que el reporte de utilidad sea exacto
   // aunque el costo del producto cambie después.
   else State.cart.push({ id: p.id, nombre: p.nombre, precio: p.precio, costo: normalizarCosto(p.costo), cantidad: 1 });
-  renderCarrito();
+  refrescarVenta();
 }
 
 function cambiarCantidad(prodId, delta) {
   const item = State.cart.find(x => x.id === prodId);
   if (!item) return;
+  if (delta > 0) {
+    const p = State.catalogo.find(x => x.id === prodId);
+    if (p && disponibleParaVender(p) < delta) { avisarSinExistencia(p); return; }
+  }
   item.cantidad += delta;
   if (item.cantidad <= 0) State.cart = State.cart.filter(x => x.id !== prodId);
-  renderCarrito();
+  refrescarVenta();
 }
 
 function quitarDelCarrito(prodId) {
   State.cart = State.cart.filter(x => x.id !== prodId);
+  refrescarVenta();
+}
+
+// Un solo lugar para repintar todo lo que depende del carrito: la lista de la
+// nota (que aparece igual en Nota y en el cierre de la Vitrina) y los
+// contadores de las fotos de la Vitrina.
+function refrescarVenta() {
   renderCarrito();
+  actualizarContadoresVitrina();
 }
 
 function carritoTotal() {
@@ -589,11 +720,8 @@ function carritoTotal() {
 }
 
 function renderCarrito() {
-  const cont = document.getElementById("carrito-list");
-  if (State.cart.length === 0) {
-    cont.innerHTML = `<div class="empty-hint">Agrega productos de la lista de arriba.</div>`;
-  } else {
-    cont.innerHTML = State.cart.map(it => `
+  const vacio = `<div class="empty-hint">Agrega productos de la lista de arriba.</div>`;
+  const filas = State.cart.length === 0 ? vacio : State.cart.map(it => `
       <div class="carrito-row">
         <div class="carrito-row-info">
           <div class="carrito-row-nombre">${escapeHtml(it.nombre)}</div>
@@ -608,18 +736,24 @@ function renderCarrito() {
         <button class="carrito-row-del" onclick="quitarDelCarrito('${it.id}')">✕</button>
       </div>
     `).join("");
-  }
-  document.getElementById("carrito-total").textContent = fmtMoney(carritoTotal());
-  const btn = document.getElementById("btn-generar-ticket");
-  btn.disabled = State.cart.length === 0;
+
+  // La lista, el total y el botón de imprimir están tanto en Nota como en el
+  // cierre de la Vitrina: se actualizan los dos a la vez.
+  document.querySelectorAll("[data-carrito-list]").forEach(c => c.innerHTML = filas);
+  const total = fmtMoney(carritoTotal());
+  document.querySelectorAll("[data-carrito-total]").forEach(c => c.textContent = total);
+  document.querySelectorAll("[data-btn-generar]").forEach(b => b.disabled = State.cart.length === 0);
 }
 
 function limpiarNota() {
   State.cart = [];
+  State.cobrado = {};
   State.clienteSeleccionado = null;
   State.clienteNombreLibre = "";
   renderNota();
-  document.getElementById("print-status").textContent = "";
+  renderVitrina(true); // venta nueva: la Vitrina regresa al primer producto
+  document.querySelectorAll("[data-print-status]").forEach(el => el.textContent = "");
+  document.querySelectorAll("[data-post-print]").forEach(el => el.classList.add("hidden"));
 }
 
 async function generarEImprimir() {
@@ -647,17 +781,41 @@ async function generarEImprimir() {
 
   State.tickets.unshift(ticket);
   persistTickets();
+  // Recién aquí se descuentan las existencias: si el cliente se arrepiente de
+  // algo, lo quitas de la lista ANTES de imprimir y no se te descuenta.
+  conciliarStockDeLaVenta();
 
-  document.getElementById("post-print-actions").classList.add("hidden");
+  document.querySelectorAll("[data-post-print]").forEach(el => el.classList.add("hidden"));
   window.__ultimoTicket = ticket;
-  await imprimirTicket(ticket, "print-status");
+  await imprimirTicket(ticket);
 
-  document.getElementById("post-print-actions").classList.remove("hidden");
+  document.querySelectorAll("[data-post-print]").forEach(el => el.classList.remove("hidden"));
+  renderVitrina();
 }
 
+// Deja las existencias exactamente como quedaron después de esta venta.
+// Se puede llamar varias veces sin descontar de más: solo mueve la diferencia
+// (y si quitas un producto que ya iba impreso, te regresa esas piezas).
+function conciliarStockDeLaVenta() {
+  const ids = new Set([...State.cart.map(i => i.id), ...Object.keys(State.cobrado)]);
+  for (const id of ids) {
+    const p = State.catalogo.find(x => x.id === id);
+    if (!p || esProductoPrincipal(p.nombre)) continue; // los principales van a consignación
+    const delta = enCarrito(id) - (State.cobrado[id] || 0);
+    if (delta !== 0) State.stock[p.id] = Math.max(0, stockDe(p) - delta);
+  }
+  State.cobrado = {};
+  for (const it of State.cart) State.cobrado[it.id] = it.cantidad;
+  persistStock();
+}
+
+// statusElId es opcional: si no se manda, el aviso ("Conectando…", "Listo") se
+// escribe en todos los lugares que lo muestran (Nota y cierre de la Vitrina).
 async function imprimirTicket(ticket, statusElId) {
-  const statusEl = document.getElementById(statusElId);
-  const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
+  const destinos = statusElId
+    ? [document.getElementById(statusElId)].filter(Boolean)
+    : Array.from(document.querySelectorAll("[data-print-status]"));
+  const setStatus = (msg) => destinos.forEach(el => el.textContent = msg);
   try {
     await Printer.printTicket(ticket, State.negocio, setStatus);
   } catch (err) {
@@ -667,7 +825,7 @@ async function imprimirTicket(ticket, statusElId) {
 }
 
 function reimprimirUltimo() {
-  if (window.__ultimoTicket) imprimirTicket(window.__ultimoTicket, "print-status");
+  if (window.__ultimoTicket) imprimirTicket(window.__ultimoTicket);
 }
 
 function compartirUltimo() {
@@ -687,6 +845,184 @@ function copiarTexto(texto) {
   }).catch(() => {
     toast("No se pudo copiar.");
   });
+}
+
+// ===================================================================
+// PANTALLA: Vitrina  (el catálogo con fotos que le pasas al cliente)
+// ===================================================================
+// Una diapositiva por producto: foto grande, precio y contador. Se avanza
+// deslizando con el dedo. La ÚLTIMA diapositiva es el cierre de la venta y
+// usa exactamente la misma nota y el mismo botón de imprimir que la pantalla
+// Nota: es una sola venta, se arme donde se arme.
+
+function vitrinaCarrusel() { return document.getElementById("vitrina-carrusel"); }
+
+function renderVitrina(irAlInicio) {
+  const carrusel = vitrinaCarrusel();
+  if (!carrusel) return;
+
+  const indiceAntes = indiceVitrina();
+
+  // Se quitan solo las diapositivas de producto: la del cierre es fija en el
+  // HTML, así conserva sus botones ya conectados.
+  carrusel.querySelectorAll("[data-slide-prod], .vitrina-aviso").forEach(n => n.remove());
+
+  const productos = productosDeVitrina();
+  const hayNovedosos = productos.some(p => !esProductoPrincipal(p.nombre));
+  const html = productos.map(slideDeProducto).join("") + (hayNovedosos ? "" : slideSinExistencias());
+  document.getElementById("vitrina-cierre").insertAdjacentHTML("beforebegin", html);
+
+  renderClienteBox();
+  renderCarrito();
+
+  // Al volver a la Vitrina se conserva la diapositiva donde ibas; solo se
+  // regresa al principio cuando empieza una venta nueva.
+  const ultima = carrusel.children.length - 1;
+  const destino = irAlInicio ? 0 : Math.max(0, Math.min(indiceAntes, ultima));
+  carrusel.scrollTo({ left: destino * carrusel.clientWidth, behavior: "instant" });
+}
+
+function slideDeProducto(p) {
+  const foto = fotoDe(p);
+  const principal = esProductoPrincipal(p.nombre);
+  const usuario = normalizarCosto(p.precioUsuario);
+  const ganancia = (usuario !== null && usuario > p.precio) ? usuario - p.precio : null;
+  return `
+    <article class="vitrina-slide" data-slide-prod="${p.id}">
+      <div class="vitrina-foto">
+        ${foto
+          ? `<img src="${escapeHtml(foto)}" alt="${escapeHtml(p.nombre)}" loading="lazy" onerror="fotoNoCargo(this)">`
+          : cajaSinFoto(p.nombre)}
+        ${principal ? `<span class="vitrina-badge">⭐ Consignación</span>` : ""}
+      </div>
+      <div class="vitrina-nombre">${escapeHtml(p.nombre)}</div>
+      <div class="vitrina-precio">${fmtMoney(p.precio)}</div>
+      <div class="vitrina-ganancia">${ganancia !== null
+        ? `Tú lo vendes en <b>${fmtMoney(usuario)}</b> · ganas <b>${fmtMoney(ganancia)}</b>`
+        : "&nbsp;"}</div>
+      <div class="vitrina-qty">
+        <button class="vitrina-qty-btn" data-menos onclick="marcarEnVitrina('${p.id}',-1)" aria-label="Quitar uno">−</button>
+        <span class="vitrina-qty-val" data-qty>0</span>
+        <button class="vitrina-qty-btn" data-mas onclick="marcarEnVitrina('${p.id}',1)" aria-label="Agregar uno">+</button>
+      </div>
+      <div class="vitrina-stock" data-stock></div>
+    </article>`;
+}
+
+// Producto sin foto: en vez de un hueco, un recuadro con su nombre y la pista
+// de dónde ponerle una.
+function cajaSinFoto(nombre) {
+  return `
+    <div class="vitrina-sinfoto">
+      <div class="vitrina-sinfoto-icono">📦</div>
+      <div class="vitrina-sinfoto-nombre">${escapeHtml(nombre)}</div>
+      <div class="vitrina-sinfoto-hint">Ponle foto en Ajustes › Existencias</div>
+    </div>`;
+}
+
+// Si la foto guardada ya no existe (archivo borrado), no se deja el hueco roto.
+function fotoNoCargo(img) {
+  const caja = img.parentElement;
+  const nombre = img.alt;
+  img.remove();
+  caja.insertAdjacentHTML("afterbegin", cajaSinFoto(nombre));
+}
+
+function slideSinExistencias() {
+  return `
+    <article class="vitrina-slide vitrina-aviso">
+      <div class="vitrina-aviso-caja">
+        <div class="vitrina-sinfoto-icono">📦</div>
+        <h3>Aquí van tus productos novedosos</h3>
+        <p>Por ahora solo se exhiben los 4 de consignación. Dile a la app cuántas piezas
+        llevas hoy de lo demás y saldrán aquí con su foto y su precio, listos para enseñárselos al cliente.</p>
+        <button class="btn btn-accent" onclick="irAExistencias()">📦 Cargar existencias</button>
+      </div>
+    </article>`;
+}
+
+function irAExistencias() {
+  showScreen("ajustes");
+  abrirPanelExistencias();
+}
+
+function marcarEnVitrina(prodId, delta) {
+  if (delta > 0) agregarAlCarrito(prodId);
+  else cambiarCantidad(prodId, -1);
+}
+
+// Actualiza los números SIN volver a construir el carrusel, para que no se
+// pierda la diapositiva en la que va el cliente.
+function actualizarContadoresVitrina() {
+  const carrusel = vitrinaCarrusel();
+  if (!carrusel) return;
+  carrusel.querySelectorAll("[data-slide-prod]").forEach(slide => {
+    const p = State.catalogo.find(x => x.id === slide.dataset.slideProd);
+    if (!p) return;
+    const cantidad = enCarrito(p.id);
+    const val = slide.querySelector("[data-qty]");
+    val.textContent = cantidad;
+    val.classList.toggle("marcado", cantidad > 0);
+    slide.querySelector("[data-menos]").disabled = cantidad === 0;
+
+    const quedan = disponibleParaVender(p);
+    slide.querySelector("[data-mas]").disabled = quedan < 1;
+
+    const info = slide.querySelector("[data-stock]");
+    if (esProductoPrincipal(p.nombre)) {
+      info.textContent = "Siempre disponible · va a consignación";
+      info.classList.remove("agotado");
+    } else {
+      info.textContent = quedan > 0
+        ? "Te quedan " + quedan + (quedan === 1 ? " pieza" : " piezas")
+        : "Ya no llevas más de este";
+      info.classList.toggle("agotado", quedan < 1);
+    }
+  });
+  actualizarBarraVitrina();
+}
+
+function indiceVitrina() {
+  const c = vitrinaCarrusel();
+  if (!c || !c.clientWidth) return 0;
+  return Math.round(c.scrollLeft / c.clientWidth);
+}
+
+function actualizarBarraVitrina() {
+  const c = vitrinaCarrusel();
+  if (!c) return;
+  const slides = Array.from(c.children);
+  const i = Math.max(0, Math.min(indiceVitrina(), slides.length - 1));
+  const actual = slides[i];
+  const totalProductos = c.querySelectorAll("[data-slide-prod]").length;
+
+  const texto = document.getElementById("vitrina-pos-texto");
+  if (texto) {
+    if (!actual) texto.textContent = "—";
+    else if (actual.dataset.slideProd) texto.textContent = "Producto " + (i + 1) + " de " + totalProductos;
+    else if (actual.id === "vitrina-cierre") texto.textContent = "Cerrar la venta";
+    else texto.textContent = "Sin novedades cargadas";
+  }
+
+  const mini = document.getElementById("vitrina-total-mini");
+  if (mini) {
+    const piezas = State.cart.reduce((a, it) => a + it.cantidad, 0);
+    mini.textContent = piezas
+      ? piezas + (piezas === 1 ? " pieza · " : " piezas · ") + fmtMoney(carritoTotal())
+      : "";
+  }
+
+  const antes = document.getElementById("vitrina-antes");
+  const despues = document.getElementById("vitrina-despues");
+  if (antes) antes.disabled = i <= 0;
+  if (despues) despues.disabled = i >= slides.length - 1;
+}
+
+function moverVitrina(delta) {
+  const c = vitrinaCarrusel();
+  if (!c || !c.clientWidth) return;
+  const destino = Math.max(0, Math.min(c.children.length - 1, indiceVitrina() + delta));
+  c.scrollTo({ left: destino * c.clientWidth, behavior: "smooth" });
 }
 
 // ===================================================================
@@ -937,6 +1273,7 @@ function renderAjustes() {
   document.getElementById("aj-whatsapp").value = State.negocio.whatsapp;
   document.getElementById("aj-slogan").value = State.negocio.slogan;
   renderProductosAjustes();
+  renderExistencias();
   document.getElementById("printer-name").textContent = Printer.isConnected()
     ? "Conectada"
     : (Printer.getLastDeviceName() ? "Última usada: " + Printer.getLastDeviceName() + " (desconectada)" : "Sin conectar");
@@ -960,6 +1297,155 @@ function toggleCatalogo() {
   const abrir = panel.classList.contains("hidden");
   panel.classList.toggle("hidden", !abrir);
   btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+}
+
+// ---------- Ajustes › Existencias para la Vitrina ----------
+
+function toggleExistencias() {
+  const btn = document.getElementById("btn-toggle-existencias");
+  const panel = document.getElementById("existencias-panel");
+  if (!btn || !panel) return;
+  const abrir = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !abrir);
+  btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+}
+
+// Se usa desde la Vitrina cuando todavía no hay nada cargado.
+function abrirPanelExistencias() {
+  const panel = document.getElementById("existencias-panel");
+  const btn = document.getElementById("btn-toggle-existencias");
+  if (!panel || !btn) return;
+  panel.classList.remove("hidden");
+  btn.setAttribute("aria-expanded", "true");
+  btn.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderExistencias(filtro) {
+  const cont = document.getElementById("existencias-list");
+  if (!cont) return;
+  const f = filtro !== undefined ? filtro : (document.getElementById("existencias-buscar")?.value || "");
+  const lista = buscarEnLista(State.catalogo, f, p => p.nombre);
+  if (lista.length === 0) {
+    cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
+    return;
+  }
+  cont.innerHTML = lista.map(p => {
+    const principal = esProductoPrincipal(p.nombre);
+    const foto = fotoDe(p);
+    const piezas = Number(State.stock[p.id]) || 0;
+    return `
+      <div class="stock-item">
+        <div class="stock-foto">${foto
+          ? `<img src="${escapeHtml(foto)}" alt="" onerror="this.remove()">`
+          : "📦"}</div>
+        <div>
+          <div class="stock-nombre">${escapeHtml(p.nombre)}</div>
+          <div class="stock-fila">
+            <span class="stock-precio">${fmtMoney(p.precio)}</span>
+            ${principal
+              ? `<span class="stock-consigna">⭐ CONSIGNACIÓN</span>`
+              : `<div class="stock-controles">
+                   <button class="qty-btn" onclick="ajustarStock('${p.id}',-1)">−</button>
+                   <input type="number" class="stock-input" data-prod="${p.id}" min="0" step="1"
+                     value="${piezas}" onchange="ponerStock('${p.id}',this.value)">
+                   <button class="qty-btn" onclick="ajustarStock('${p.id}',1)">+</button>
+                 </div>`}
+            <label class="stock-camara" title="Ponerle foto">📷
+              <input type="file" accept="image/*" style="display:none" onchange="subirFoto('${p.id}',this)">
+            </label>
+            ${State.fotos[p.id]
+              ? `<button class="stock-camara" onclick="quitarFoto('${p.id}')" title="Quitar la foto que le pusiste">✕</button>`
+              : ""}
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// Se actualiza solo el número de ese renglón: repintar la lista completa haría
+// que se cerrara el teclado y se perdiera el lugar donde vas.
+function ajustarStock(id, delta) {
+  fijarStock(id, (Number(State.stock[id]) || 0) + delta);
+  const input = document.querySelector(`.stock-input[data-prod="${id}"]`);
+  if (input) input.value = State.stock[id];
+}
+
+function ponerStock(id, valor) {
+  fijarStock(id, valor);
+  const input = document.querySelector(`.stock-input[data-prod="${id}"]`);
+  if (input) input.value = State.stock[id]; // deja el número limpio (sin decimales ni negativos)
+}
+
+function ponerStockATodos() {
+  const input = document.getElementById("stock-todos");
+  if (!input || input.value.trim() === "") { toast("Escribe cuántas piezas llevas."); return; }
+  const n = Math.max(0, Math.floor(Number(input.value)));
+  if (!Number.isFinite(n)) { toast("Escribe un número válido."); return; }
+  const novedosos = State.catalogo.filter(p => !esProductoPrincipal(p.nombre));
+  if (!confirm(`¿Poner ${n} pieza(s) a los ${novedosos.length} productos novedosos?\n\nEsto reemplaza lo que tengas capturado en cada uno.`)) return;
+  novedosos.forEach(p => { State.stock[p.id] = n; });
+  persistStock();
+  input.value = "";
+  renderExistencias();
+  toast("Existencias actualizadas.");
+}
+
+// ---------- Fotos propias de los productos ----------
+
+// Se guarda una versión chica: una foto de celular pesa varios MB y no cabría
+// en la memoria del navegador. A 700 px se ve perfecta en la Vitrina.
+function comprimirImagen(file, maxLado, calidad) {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("El archivo no es una imagen."));
+      img.onload = () => {
+        const escala = Math.min(1, maxLado / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * escala));
+        canvas.height = Math.max(1, Math.round(img.height * escala));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        // webp pesa casi la mitad que jpeg. Si el navegador no lo sabe generar
+        // devuelve un png disfrazado, así que se revisa y se cae a jpeg.
+        let salida = canvas.toDataURL("image/webp", calidad);
+        if (!salida.startsWith("data:image/webp")) salida = canvas.toDataURL("image/jpeg", calidad);
+        resolve(salida);
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(file);
+  });
+}
+
+async function subirFoto(id, input) {
+  const file = input.files && input.files[0];
+  input.value = ""; // permite volver a elegir la misma foto si algo salió mal
+  if (!file) return;
+  toast("Guardando foto…");
+  try {
+    const anterior = State.fotos[id];
+    State.fotos[id] = await comprimirImagen(file, 700, 0.82);
+    if (!persistFotos()) {
+      // Ya no cabe: se deja como estaba para no perder las fotos anteriores.
+      if (anterior) State.fotos[id] = anterior; else delete State.fotos[id];
+      toast("Ya no hay espacio en el celular para más fotos.");
+      return;
+    }
+    renderExistencias();
+    toast("Foto guardada.");
+  } catch (e) {
+    toast(e.message || "No se pudo usar esa imagen.");
+  }
+}
+
+function quitarFoto(id) {
+  if (!confirm("¿Quitar la foto que le pusiste? Volverá a usarse la que trae la app, si tiene.")) return;
+  delete State.fotos[id];
+  persistFotos();
+  renderExistencias();
+  toast("Foto quitada.");
 }
 
 function renderProductosAjustes() {
@@ -1050,6 +1536,8 @@ function exportarDatos() {
     catalogo: State.catalogo,
     clientes: State.clientes,
     tickets: State.tickets,
+    stock: State.stock,   // existencias que llevas en la ruta (Vitrina)
+    fotos: State.fotos,   // fotos que tú le tomaste a los productos
     exportado: new Date().toISOString(),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -1178,6 +1666,13 @@ function importarDatos(ev) {
       if (data.catalogo !== undefined) { State.catalogo = sanearCatalogo(data.catalogo).lista; persistCatalogo(); }
       if (data.clientes !== undefined) { State.clientes = data.clientes; persistClientes(); }
       if (data.tickets !== undefined) { State.tickets = data.tickets; persistTickets(); }
+      // Respaldos hechos antes de la Vitrina no traen estas dos llaves: en ese
+      // caso se dejan como están en el celular, no se borran.
+      if (data.stock !== undefined) { State.stock = sanearMapa(data.stock, piezasValidas); persistStock(); }
+      if (data.fotos !== undefined) {
+        State.fotos = sanearMapa(data.fotos, v => (typeof v === "string" && v.startsWith("data:image/")) ? v : null);
+        persistFotos();
+      }
       toast("Datos importados correctamente.");
       renderAjustes();
     } catch (e) {
@@ -2098,10 +2593,25 @@ async function initApp() {
   document.getElementById("producto-buscar").addEventListener("input", () => renderCatalogoPicker());
   document.getElementById("clientes-buscar").addEventListener("input", renderClientes);
   document.getElementById("historial-buscar").addEventListener("input", renderHistorial);
-  document.getElementById("btn-generar-ticket").addEventListener("click", generarEImprimir);
-  document.getElementById("btn-nueva-nota").addEventListener("click", limpiarNota);
-  document.getElementById("btn-reimprimir").addEventListener("click", reimprimirUltimo);
-  document.getElementById("btn-compartir").addEventListener("click", compartirUltimo);
+  // El bloque de cierre de venta existe dos veces (Nota y Vitrina): se conectan
+  // los botones de los dos de una sola pasada.
+  document.querySelectorAll("[data-btn-generar]").forEach(b => b.addEventListener("click", generarEImprimir));
+  document.querySelectorAll("[data-btn-nueva-nota]").forEach(b => b.addEventListener("click", limpiarNota));
+  document.querySelectorAll("[data-btn-reimprimir]").forEach(b => b.addEventListener("click", reimprimirUltimo));
+  document.querySelectorAll("[data-btn-compartir]").forEach(b => b.addEventListener("click", compartirUltimo));
+
+  // Flechas y seguimiento del deslizado de la Vitrina
+  document.getElementById("vitrina-antes").addEventListener("click", () => moverVitrina(-1));
+  document.getElementById("vitrina-despues").addEventListener("click", () => moverVitrina(1));
+  const carrusel = vitrinaCarrusel();
+  let pendiente = false;
+  carrusel.addEventListener("scroll", () => {
+    // El scroll dispara decenas de veces por segundo: se actualiza una sola
+    // vez por cuadro para que el deslizado se sienta suave en el celular.
+    if (pendiente) return;
+    pendiente = true;
+    requestAnimationFrame(() => { pendiente = false; actualizarBarraVitrina(); });
+  }, { passive: true });
   document.getElementById("form-cliente").addEventListener("submit", guardarCliente);
   document.getElementById("btn-nuevo-cliente").addEventListener("click", nuevoCliente);
   document.getElementById("form-negocio").addEventListener("submit", guardarNegocio);
@@ -2115,6 +2625,12 @@ async function initApp() {
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
   const btnCatalogo = document.getElementById("btn-toggle-catalogo");
   if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
+  const btnExistencias = document.getElementById("btn-toggle-existencias");
+  if (btnExistencias) btnExistencias.addEventListener("click", toggleExistencias);
+  const btnStockTodos = document.getElementById("btn-stock-todos");
+  if (btnStockTodos) btnStockTodos.addEventListener("click", ponerStockATodos);
+  const buscarExistencias = document.getElementById("existencias-buscar");
+  if (buscarExistencias) buscarExistencias.addEventListener("input", () => renderExistencias());
   document.getElementById("input-importar").addEventListener("change", importarDatos);
   document.getElementById("pin-toggle").addEventListener("change", togglePin);
 

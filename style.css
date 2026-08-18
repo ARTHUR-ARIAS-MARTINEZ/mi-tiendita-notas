@@ -173,6 +173,95 @@ td{padding:8px;border-top:1px solid var(--border)}
 .rot-titulo span{font-size:.68rem;font-weight:400;color:var(--muted);text-transform:none}
 
 .rot-item{padding:10px 12px;margin-bottom:8px}
+
+/* ===================================================================
+   VITRINA — el catálogo con fotos que se le pasa al cliente
+   =================================================================== */
+
+/* Con 6 pestañas hay que apretar un poco el texto para que quepan todas
+   en pantallas chicas sin que se encimen. */
+.nav-btn{font-size:.56rem;padding:8px 1px;letter-spacing:-.01em}
+.nav-btn .icon{font-size:1.2rem}
+
+/* Esta pantalla no lleva el padding lateral normal: el carrusel va de
+   orilla a orilla para que la foto se vea lo más grande posible. */
+#screen-vitrina{padding:10px 0 calc(72px + env(safe-area-inset-bottom))}
+
+/* Desplazamiento horizontal con "imán": el dedo suelta y la diapositiva
+   se acomoda sola, una por pantalla. */
+.vitrina-carrusel{
+  display:flex;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;scrollbar-width:none;
+  height:calc(100vh - 192px - env(safe-area-inset-bottom));
+  height:calc(100dvh - 192px - env(safe-area-inset-bottom));
+  min-height:330px;
+}
+.vitrina-carrusel::-webkit-scrollbar{display:none}
+.vitrina-slide{
+  flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;
+  display:flex;flex-direction:column;height:100%;padding:0 14px;
+  overflow-y:auto;overscroll-behavior-y:contain
+}
+
+.vitrina-foto{
+  position:relative;flex:1 1 auto;min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,rgba(45,224,21,.10),rgba(255,255,255,.02) 65%);
+  border:1px solid var(--border);border-radius:18px;overflow:hidden;margin-bottom:12px
+}
+.vitrina-foto img{width:100%;height:100%;object-fit:contain;padding:10px}
+.vitrina-badge{position:absolute;top:10px;left:10px;background:var(--green);color:#000;font-size:.6rem;font-weight:800;padding:3px 9px;border-radius:999px}
+
+.vitrina-sinfoto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:20px;color:var(--muted)}
+.vitrina-sinfoto-icono{font-size:2.6rem;line-height:1}
+.vitrina-sinfoto-nombre{font-family:var(--font-h);font-weight:600;color:var(--text);font-size:.95rem}
+.vitrina-sinfoto-hint{font-size:.7rem}
+
+.vitrina-nombre{font-family:var(--font-h);font-weight:700;font-size:1.02rem;line-height:1.25;text-align:center}
+.vitrina-precio{font-family:var(--font-h);font-weight:800;font-size:2.1rem;line-height:1.1;color:var(--green);text-align:center;margin-top:2px}
+.vitrina-ganancia{font-size:.76rem;color:var(--muted);text-align:center;min-height:1.15em}
+.vitrina-ganancia b{color:var(--text);font-weight:600}
+
+/* Botones grandes: el cliente los va a picar con el dedo, no con el mouse. */
+.vitrina-qty{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:12px}
+.vitrina-qty-btn{width:54px;height:54px;border-radius:16px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);font-size:1.7rem;line-height:1;font-family:inherit;cursor:pointer}
+.vitrina-qty-btn:active:not(:disabled){transform:scale(.93);border-color:var(--green)}
+.vitrina-qty-btn:disabled{opacity:.25;cursor:not-allowed}
+.vitrina-qty-val{font-family:var(--font-h);font-weight:800;font-size:2rem;min-width:60px;text-align:center;color:var(--muted)}
+.vitrina-qty-val.marcado{color:var(--green)}
+.vitrina-stock{font-size:.72rem;color:var(--muted);text-align:center;margin:6px 0 4px}
+.vitrina-stock.agotado{color:var(--red)}
+
+.vitrina-aviso{align-items:center;justify-content:center}
+.vitrina-aviso-caja{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 18px;text-align:center}
+.vitrina-aviso-caja p{font-size:.8rem;color:var(--muted);line-height:1.5;margin:8px 0 14px}
+
+.vitrina-barra{display:flex;align-items:center;gap:12px;padding:10px 14px 0;max-width:640px;margin:0 auto}
+.vitrina-flecha{width:46px;height:46px;flex:0 0 auto;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:1.5rem;line-height:1;font-family:inherit;cursor:pointer}
+.vitrina-flecha:active:not(:disabled){border-color:var(--green)}
+.vitrina-flecha:disabled{opacity:.2}
+.vitrina-pos{flex:1;text-align:center;min-width:0}
+#vitrina-pos-texto{font-size:.72rem;color:var(--muted)}
+.vitrina-total-mini{font-family:var(--font-h);font-weight:700;font-size:.85rem;color:var(--green);min-height:1.1em}
+
+/* ---------- Ajustes › Existencias ---------- */
+.stock-masivo{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.stock-masivo input{width:76px;margin-bottom:0}
+.stock-item{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
+.stock-item:last-child{border-bottom:none}
+.stock-foto{width:48px;height:48px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.stock-foto img{width:100%;height:100%;object-fit:cover}
+.stock-nombre{font-size:.78rem;line-height:1.25;margin-bottom:5px}
+.stock-fila{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stock-precio{font-size:.7rem;color:var(--muted);flex:1;min-width:40px}
+.stock-controles{display:flex;align-items:center;gap:5px}
+/* Va con "input." delante: si no, la regla general de input[type=number]
+   (width:100%) le gana y el campito se estira de lado a lado. */
+input.stock-input{width:56px;text-align:center;margin-bottom:0;padding:6px 4px;font-size:.85rem}
+.stock-consigna{font-size:.63rem;color:var(--green);font-weight:700;white-space:nowrap;letter-spacing:.02em}
+.stock-camara{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--border);background:rgba(255,255,255,.05);cursor:pointer;font-size:.95rem;flex:0 0 auto}
+.stock-camara:active{border-color:var(--green)}
 .rot-item-top{display:flex;align-items:center;gap:8px}
 .rot-pos{background:rgba(43,255,15,.14);color:var(--green);font-size:.65rem;font-weight:700;width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex:none}
 .rot-nombre{flex:1;font-size:.8rem;font-weight:600;line-height:1.25}

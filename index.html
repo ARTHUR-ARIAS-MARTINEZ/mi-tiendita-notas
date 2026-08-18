@@ -17,6 +17,47 @@
   <div class="topbar-title">Notas de Venta</div>
 </div>
 
+<!-- ============ PANTALLA: VITRINA (catálogo con fotos) ============ -->
+<!-- Se le pasa el celular al cliente: desliza con el dedo, ve la foto y el
+     precio, y marca cuántas piezas quiere. La última diapositiva es el cierre
+     de la venta (misma nota y mismo botón de imprimir que la pantalla Nota). -->
+<section class="screen" id="screen-vitrina">
+  <div class="vitrina-carrusel" id="vitrina-carrusel">
+    <!-- Las diapositivas de producto se insertan aquí, antes del cierre -->
+    <article class="vitrina-slide vitrina-cierre" id="vitrina-cierre">
+      <h2>🧾 Cerrar la venta</h2>
+
+      <div class="card">
+        <h3>Cliente / tiendita</h3>
+        <div data-cliente-box></div>
+      </div>
+
+      <div class="card">
+        <h3>Lo que se lleva</h3>
+        <div class="form-hint">Puedes cambiar cantidades o quitar algo antes de imprimir. Las existencias se descuentan hasta que imprimes.</div>
+        <div data-carrito-list></div>
+        <div class="total-line"><span>TOTAL</span><span data-carrito-total>$0.00</span></div>
+        <button class="btn btn-primary" data-btn-generar style="margin-top:12px" disabled>🖨️ Generar e Imprimir</button>
+        <div class="print-status" data-print-status></div>
+        <div class="post-print-actions hidden" data-post-print>
+          <button class="btn btn-secondary btn-sm" data-btn-reimprimir>🔁 Reimprimir</button>
+          <button class="btn btn-secondary btn-sm" data-btn-compartir>📤 Compartir texto</button>
+          <button class="btn btn-accent btn-sm" data-btn-nueva-nota>✅ Nueva venta</button>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <div class="vitrina-barra">
+    <button class="vitrina-flecha" id="vitrina-antes" aria-label="Anterior">‹</button>
+    <div class="vitrina-pos">
+      <div id="vitrina-pos-texto">—</div>
+      <div class="vitrina-total-mini" id="vitrina-total-mini"></div>
+    </div>
+    <button class="vitrina-flecha" id="vitrina-despues" aria-label="Siguiente">›</button>
+  </div>
+</section>
+
 <!-- ============ PANTALLA: NUEVA NOTA ============ -->
 <section class="screen active" id="screen-nota">
   <div id="bt-warning" class="warning-banner hidden">
@@ -25,7 +66,7 @@
 
   <div class="card">
     <h3>Cliente / tiendita</h3>
-    <div id="cliente-box"></div>
+    <div data-cliente-box></div>
   </div>
 
   <div class="card">
@@ -36,14 +77,14 @@
 
   <div class="card">
     <h3>Ticket actual</h3>
-    <div id="carrito-list"></div>
-    <div class="total-line"><span>TOTAL</span><span id="carrito-total">$0.00</span></div>
-    <button class="btn btn-primary" id="btn-generar-ticket" style="margin-top:12px" disabled>🖨️ Generar e Imprimir</button>
-    <div class="print-status" id="print-status"></div>
-    <div class="post-print-actions hidden" id="post-print-actions">
-      <button class="btn btn-secondary btn-sm" id="btn-reimprimir">🔁 Reimprimir</button>
-      <button class="btn btn-secondary btn-sm" id="btn-compartir">📤 Compartir texto</button>
-      <button class="btn btn-accent btn-sm" id="btn-nueva-nota">✅ Nueva nota</button>
+    <div data-carrito-list></div>
+    <div class="total-line"><span>TOTAL</span><span data-carrito-total>$0.00</span></div>
+    <button class="btn btn-primary" data-btn-generar style="margin-top:12px" disabled>🖨️ Generar e Imprimir</button>
+    <div class="print-status" data-print-status></div>
+    <div class="post-print-actions hidden" data-post-print>
+      <button class="btn btn-secondary btn-sm" data-btn-reimprimir>🔁 Reimprimir</button>
+      <button class="btn btn-secondary btn-sm" data-btn-compartir>📤 Compartir texto</button>
+      <button class="btn btn-accent btn-sm" data-btn-nueva-nota>✅ Nueva nota</button>
     </div>
   </div>
 </section>
@@ -94,6 +135,31 @@
     </div>
     <div style="margin-top:8px">
       <button class="btn btn-accent btn-block" id="btn-instalar">📲 Instalar aplicación</button>
+    </div>
+  </div>
+
+  <!-- Lo primero que se toca cada mañana antes de salir a la ruta -->
+  <div class="card">
+    <button type="button" class="collapse-header" id="btn-toggle-existencias" aria-expanded="false">
+      <span>📦 Existencias para la Vitrina</span>
+      <span class="collapse-caret" id="existencias-caret">▼</span>
+    </button>
+    <div id="existencias-panel" class="hidden" style="margin-top:12px">
+      <div class="form-hint">
+        Cuántas piezas llevas hoy de cada producto. En la <b>Vitrina</b> solo se exhiben
+        los que tengan al menos 1 pieza. Los <b>4 principales</b> van a consignación:
+        siempre se exhiben y no llevan cuenta.
+      </div>
+      <div class="stock-masivo">
+        <input type="number" id="stock-todos" min="0" step="1" placeholder="5">
+        <button class="btn btn-secondary btn-sm" id="btn-stock-todos">Poner esa cantidad a todos</button>
+      </div>
+      <input type="text" id="existencias-buscar" placeholder="🔍 Buscar producto…" class="search-row">
+      <div id="existencias-list"></div>
+      <div class="form-hint" style="margin-top:10px">
+        El botón <b>📷</b> le pone foto a un producto (con la cámara o desde tu galería).
+        Esa foto manda sobre la que trae la app.
+      </div>
     </div>
   </div>
 
@@ -228,6 +294,7 @@
 </section>
 
 <div class="nav-bottom">
+  <button class="nav-btn" data-screen="vitrina"><span class="icon">🛍️</span>Vitrina</button>
   <button class="nav-btn active" data-screen="nota"><span class="icon">🧾</span>Nota</button>
   <button class="nav-btn" data-screen="clientes"><span class="icon">🏬</span>Tienditas</button>
   <button class="nav-btn" data-screen="historial"><span class="icon">📜</span>Historial</button>
@@ -282,6 +349,7 @@
 <div id="toast"></div>
 
 <script src="catalogo-default.js"></script>
+<script src="productos-imagenes.js"></script>
 <script src="printer.js"></script>
 <script src="app.js"></script>
 </body>

@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v26";
+const CACHE = "mte-notas-v27";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -22,6 +22,7 @@ const CORE = [
   "app.js",
   "printer.js",
   "catalogo-default.js",
+  "productos-imagenes.js",
   "manifest.json",
 ];
 
@@ -41,6 +42,43 @@ const EXTRAS = [
   "fonts/outfit-600.woff2",
   "fonts/outfit-700.woff2",
   "fonts/outfit-800.woff2",
+  // Fotos de los productos para la Vitrina (~1.3 MB en total). Van en EXTRAS
+  // para que se guarden de una vez y el cliente vea las fotos al instante,
+  // aunque estés en una tiendita sin señal. Si alguna falla al bajar, se
+  // guarda sola la primera vez que se vea con internet.
+  "productos/cab236.webp",
+  "productos/cab237.webp",
+  "productos/cab238.webp",
+  "productos/cab252.webp",
+  "productos/cab258.webp",
+  "productos/ez165.webp",
+  "productos/gar063.webp",
+  "productos/gar128.webp",
+  "productos/gar148.webp",
+  "productos/gar153.webp",
+  "productos/gar154.webp",
+  "productos/gar161.webp",
+  "productos/gar261.webp",
+  "productos/aut125.webp",
+  "productos/aut205.webp",
+  "productos/aut210.webp",
+  "productos/ac01.webp",
+  "productos/inpods12.webp",
+  "productos/earpods.webp",
+  "productos/gtide.webp",
+  "productos/boc060.webp",
+  "productos/boc062.webp",
+  "productos/boc241.webp",
+  "productos/boc242.webp",
+  "productos/boc243.webp",
+  "productos/boc244.webp",
+  "productos/boc250.webp",
+  "productos/sv01.webp",
+  "productos/rat001.webp",
+  "productos/pj097.webp",
+  "productos/tb6323.webp",
+  "productos/hdmi3m.webp",
+  "productos/tiraled.webp",
 ];
 
 self.addEventListener("install", (ev) => {
