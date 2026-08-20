@@ -1,7 +1,7 @@
 // Service worker del Cotizador. Vive en su propia carpeta, así que solo se
 // hace cargo de /cotizador/ (la app de Notas tiene el suyo aparte).
 // Misma estrategia que la app: lo guardado primero, para que abra sin internet.
-const CACHE = "mte-cotizador-v1";
+const CACHE = "mte-cotizador-v2";
 
 const ARCHIVOS = [
   "./",
