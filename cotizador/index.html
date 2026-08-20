@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotizador de Compras</title>
+<meta name="theme-color" content="#222b39">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  :root{--bg:#f4f5f7;--card:#fff;--ink:#1c2431;--muted:#6b7482;--line:#e4e7ec;
+    --line2:#eef0f3;--accent:#1f6feb;--accent-d:#1857c4;--good:#0f8a4d;--good-bg:#e8f6ee;
+    --head:#222b39;--input:#fbfcfe;--warn:#b26a00;--danger:#c0392b;
+    --gr:#2fa96a;--or:#e0902b;--rd:#d0433a;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);
+    font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%}
+  .wrap{max-width:920px;margin:0 auto;padding:14px 12px 118px}
+  h1{font-size:19px;font-weight:700}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .tabs{display:flex;gap:6px;background:#e7eaef;padding:4px;border-radius:10px;margin-top:12px}
+  .tab{flex:1;text-align:center;padding:9px 8px;border-radius:7px;font-weight:600;font-size:14px;
+    color:var(--muted);cursor:pointer;border:none;background:none}
+  .tab.on{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .bar{display:flex;gap:7px;align-items:center;margin:11px 0;flex-wrap:wrap}
+  .search{flex:1;min-width:120px;padding:9px 11px;border:1px solid var(--line);border-radius:8px;
+    font-size:14px;background:var(--card);color:var(--ink)}
+  select.sel{padding:9px 8px;border:1px solid var(--line);border-radius:8px;font-size:13px;
+    background:var(--card);color:var(--ink);font-weight:600}
+  .btn{padding:9px 12px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+    font-size:13px;font-weight:600;cursor:pointer;color:var(--ink);white-space:nowrap}
+  .btn:hover{background:#f0f2f5}
+  .btn.p{background:var(--accent);border-color:var(--accent);color:#fff}.btn.p:hover{background:var(--accent-d)}
+  .btn.g{background:var(--good);border-color:var(--good);color:#fff}
+  .btn.wa{background:#25a366;border-color:#25a366;color:#fff}
+  .btn.sm{padding:6px 9px;font-size:12px}
+  .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:9px 10px;text-align:left;font-size:14px}
+  thead th{background:var(--head);color:#fff;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  th.r,td.r{text-align:right;white-space:nowrap}th.c,td.c{text-align:center}
+  tbody tr{border-top:1px solid var(--line2)}
+  tbody tr:nth-child(even){background:#fafbfc}
+  .prod{font-weight:500;line-height:1.25}.num{color:var(--muted);font-size:12px}
+  .money{font-variant-numeric:tabular-nums}
+  .divider td{background:#eef2f8;color:#3a4658;font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;padding:7px 10px}
+  .qty{width:60px;padding:7px;border:1px solid #cfd6e0;border-radius:7px;text-align:center;font-size:15px;
+    font-weight:600;background:var(--input);color:var(--ink);font-variant-numeric:tabular-nums}
+  .qty:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  tr.has td{background:var(--good-bg)!important}
+  td.tot{font-weight:700;color:var(--good)}td.tot.z{color:#c3c9d2;font-weight:400}
+  .mchip{display:inline-block;min-width:44px;padding:2px 6px;margin-right:8px;border-radius:999px;
+    font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;vertical-align:middle;
+    letter-spacing:-.2px;line-height:1.45}
+  .mchip.mnone{background:#eef0f3;color:#8a92a0}
+  .edit{cursor:pointer;color:var(--muted);font-size:16px;padding:2px 6px;border-radius:6px;user-select:none}
+  .edit:hover{background:#eef0f3;color:var(--accent)}
+  .mcell{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+  .mcell .mchip{margin-right:0}
+  .mcell .pz{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:2px}
+  /* Escala de utilidad: barra con el degradado real, no tres puntitos sueltos */
+  .legend{font-size:11px;color:var(--muted);margin:-2px 0 9px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .gradbar{height:9px;border-radius:999px;flex:1;min-width:120px;max-width:260px;border:1px solid rgba(0,0,0,.10)}
+  .legend b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .thr{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin:-2px 0 8px}
+  .thr input{width:54px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;font-size:13px;text-align:center}
+  .foot{position:fixed;left:0;right:0;bottom:0;background:var(--head);color:#fff;box-shadow:0 -2px 12px rgba(0,0,0,.18);z-index:20}
+  .foot .in{max-width:920px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .fstats{display:flex;gap:16px;font-size:12.5px;color:#c8cfdb}.fstats b{color:#fff;font-size:14px}
+  .ftotal{font-size:13px;color:#c8cfdb;text-align:right}
+  .ftotal b{display:block;font-size:23px;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+  .hide{display:none!important}.note{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
+  .ov{position:fixed;inset:0;background:rgba(20,26,36,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:440px;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.3);max-height:92vh;overflow:auto}
+  .modal h3{font-size:16px;margin-bottom:14px}
+  .fld{margin-bottom:11px}
+  .fld label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .fld input,.fld select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:var(--input);color:var(--ink)}
+  .fld input:focus,.fld select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .macts{display:flex;gap:8px;margin-top:14px;align-items:center}.macts .sp{flex:1}
+  .btn.del{color:var(--danger);border-color:#f0cfca}.btn.del:hover{background:#fdeeeb}
+  .ped{width:100%;min-height:180px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:13px;
+    font-family:Arial,sans-serif;background:#fbfcfe;color:var(--ink);white-space:pre;resize:vertical}
+  @media (max-width:520px){.qty{width:52px}th,td{padding:8px 6px;font-size:13.5px}.ftotal b{font-size:20px}.row3{grid-template-columns:1fr}}
+  @media print{
+    body{background:#fff;font-size:12px}.wrap{padding:0;max-width:100%}
+    .noprint,.tabs,.bar,.foot,.edit,.legend,.thr{display:none!important}
+    .card{border:none}thead th{background:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .mchip{-webkit-print-color-adjust:exact;print-color-adjust:exact;border:1px solid rgba(0,0,0,.18)}
+    .divider td{background:#ddd!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    tr.has td{background:#fff!important}.print-title{display:block!important;font-size:18px;font-weight:700;margin-bottom:8px}
+  }
+  .print-title{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cotizador de Compras</h1>
+  <div class="sub" id="sub"></div>
+  <div class="tabs noprint">
+    <button class="tab on" id="tCot" onclick="showTab('cot')">🧮 Cotizador</button>
+    <button class="tab" id="tPl" onclick="showTab('pl')">🏷️ Lista de Precios</button>
+  </div>
+
+  <!-- COTIZADOR -->
+  <section id="secCot">
+    <div class="bar noprint">
+      <input class="search" id="qCot" placeholder="Buscar…" oninput="renderCot()">
+      <select class="sel" id="fProv" onchange="renderCot()"><option value="">Todos</option></select>
+      <button class="btn" id="bOnly" onclick="toggleOnly()">Solo por comprar</button>
+      <button class="btn g" onclick="openPedido()">📤 Enviar pedido</button>
+    </div>
+    <div class="bar noprint" style="margin-top:-3px">
+      <button class="btn sm" onclick="openAdd()">＋ Agregar</button>
+      <button class="btn sm" onclick="openAdj()">💲 Ajustar precios</button>
+      <button class="btn sm p" onclick="window.print()">🖨 Imprimir</button>
+      <button class="btn sm" onclick="limpiar()">Limpiar piezas</button>
+      <button class="btn sm" onclick="backup()">Guardar copia</button>
+      <button class="btn sm" onclick="document.getElementById('imp').click()">Restaurar copia</button>
+      <button class="btn sm" onclick="restaurar()">Volver al original</button>
+      <button class="btn sm g" onclick="exportarApp()">📲 Enviar precios a la app</button>
+      <button class="btn sm p hide" id="bInstalar" onclick="instalarApp()">⬇️ Instalar en el celular</button>
+      <input type="file" id="imp" accept=".json" class="hide" onchange="importar(event)">
+    </div>
+    <div class="legend noprint">
+      <span>Utilidad sobre tu costo:</span>
+      <span>menos de <b id="legLow">—</b></span>
+      <div class="gradbar" id="gradbar"></div>
+      <span><b id="legHigh">—</b> o más</span>
+    </div>
+    <div class="thr noprint">
+      Degradado: rojo ≤ <input type="number" id="tRed" onchange="setThr()"> %
+      · verde ≥ <input type="number" id="tGreen" onchange="setThr()"> %
+    </div>
+    <div class="print-title">Orden de compra</div>
+    <div class="card"><table>
+      <thead><tr>
+        <th style="width:30px">#</th><th>Producto</th>
+        <th class="r" style="width:70px">Costo</th>
+        <th class="c" style="width:66px">Piezas</th>
+        <th class="r" style="width:84px">Total</th>
+        <th class="c noprint" style="width:32px"></th>
+      </tr></thead><tbody id="bodyCot"></tbody>
+    </table></div>
+  </section>
+
+  <!-- PRECIOS -->
+  <section id="secPl" class="hide">
+    <div class="bar noprint">
+      <input class="search" id="qPl" placeholder="Buscar…" oninput="renderPl()">
+      <button class="btn" id="btnCost" onclick="toggleCost()">Mostrar costo</button>
+      <button class="btn p" onclick="window.print()">🖨 Imprimir</button>
+    </div>
+    <div class="legend noprint costcol hide">
+      <span>Utilidad sobre tu costo:</span>
+      <span>menos de <b id="legLow2">—</b></span>
+      <div class="gradbar" id="gradbar2"></div>
+      <span><b id="legHigh2">—</b> o más</span>
+    </div>
+    <div class="print-title">Lista de Precios</div>
+    <div class="card"><table>
+      <thead><tr>
+        <th>Producto</th>
+        <th class="r costcol hide" style="width:70px">Costo</th>
+        <th class="r" style="width:84px">Cliente</th>
+        <th class="r" style="width:84px">Usuario</th>
+        <th class="r costcol hide" style="width:78px">Utilidad</th>
+      </tr></thead><tbody id="bodyPl"></tbody>
+    </table></div>
+    <div class="note noprint">Cliente = precio a tienditas · Usuario = precio a público final</div>
+  </section>
+</div>
+
+<div class="foot" id="foot"><div class="in">
+  <div class="fstats"><div>Piezas<br><b id="fPiezas">0</b></div><div>Líneas<br><b id="fLineas">0</b></div></div>
+  <div class="ftotal">Total de la compra<b class="money" id="fTotal">$0</b></div>
+</div></div>
+
+<!-- MODAL agregar/editar -->
+<div class="ov hide" id="ov"><div class="modal">
+  <h3 id="mTitle">Agregar producto</h3>
+  <div class="fld"><label>Proveedor</label><input id="mProv" list="provs" placeholder="Chinos, GDL…"></div>
+  <datalist id="provs"></datalist>
+  <div class="fld"><label>Producto</label><input id="mProd" placeholder="Nombre del producto"></div>
+  <div class="row3">
+    <div class="fld"><label>Costo</label><input id="mCosto" type="number" step="0.5" inputmode="decimal" placeholder="0"></div>
+    <div class="fld"><label>P. Cliente</label><input id="mCli" type="number" inputmode="numeric" placeholder="0"></div>
+    <div class="fld"><label>P. Usuario</label><input id="mUsu" type="number" inputmode="numeric" placeholder="0"></div>
+  </div>
+  <div class="macts">
+    <button class="btn del hide" id="mDel" onclick="delItem()">Eliminar</button>
+    <div class="sp"></div>
+    <button class="btn" onclick="closeM()">Cancelar</button>
+    <button class="btn p" onclick="saveM()">Guardar</button>
+  </div>
+</div></div>
+
+<!-- MODAL ajustar precios -->
+<div class="ov hide" id="ovA"><div class="modal">
+  <h3>Ajustar precios en bloque</h3>
+  <div class="fld"><label>Aplicar a</label>
+    <select id="aTarget"><option value="cli">Precio Cliente</option><option value="usu">Precio Usuario</option><option value="both">Ambos</option></select></div>
+  <div class="row2">
+    <div class="fld"><label>Cambio %</label><input id="aPct" type="number" step="1" value="10" inputmode="numeric"></div>
+    <div class="fld"><label>Redondear</label>
+      <select id="aRound"><option value="0">No redondear</option><option value="5">A múltiplos de 5</option><option value="10">A múltiplos de 10</option></select></div>
+  </div>
+  <div class="note" style="text-align:left">Ej. 10 sube 10%. Usa -10 para bajar. No toca los productos sin precio.</div>
+  <div class="macts"><div class="sp"></div>
+    <button class="btn" onclick="closeAdj()">Cancelar</button>
+    <button class="btn p" onclick="applyAdj()">Aplicar</button>
+  </div>
+</div></div>
+
+<!-- MODAL enviar pedido -->
+<div class="ov hide" id="ovP"><div class="modal">
+  <h3>Enviar pedido al proveedor</h3>
+  <div class="fld"><label>Proveedor</label>
+    <select id="pProv" onchange="buildPed()"><option value="">Todos</option></select></div>
+  <textarea class="ped" id="pText" readonly></textarea>
+  <div class="macts">
+    <button class="btn" onclick="closePed()">Cerrar</button>
+    <div class="sp"></div>
+    <button class="btn" onclick="copyPed()">Copiar</button>
+    <button class="btn wa" onclick="waPed()">WhatsApp</button>
+  </div>
+</div></div>
+
+<script>
+const ORIGINAL = [{"prov": "Chinos", "prod": "Cable Tipo C CAB237", "costo": 8.8, "cliente": 35, "usuario": 50, "piezas": 0}, {"prov": "Chinos", "prod": "Cable iPhone CAB238", "costo": 8.8, "cliente": 35, "usuario": 50, "piezas": 0}, {"prov": "Buytiti", "prod": "Audífono Buytiti EZ-165", "costo": 7, "cliente": 35, "usuario": 50, "piezas": 0}, {"prov": "GDL", "prod": "Cable V8 CAB236", "costo": 9.5, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Cargador de Carga Media 2 Amp GAR063", "costo": 15, "cliente": 35, "usuario": 50, "piezas": 0}, {"prov": "GDL", "prod": "Reloj Inteligente TB6323", "costo": 120, "cliente": 210, "usuario": 260, "piezas": 0}, {"prov": "GDL", "prod": "Audífonos Inalámbricos TWS 1 Hora AUT205", "costo": 130.5, "cliente": 220, "usuario": 270, "piezas": 0}, {"prov": "GDL", "prod": "Audífonos Clip 1 Hora AUT210", "costo": 155, "cliente": 250, "usuario": 300, "piezas": 0}, {"prov": "GDL", "prod": "Power Bank con Cables 5000 mAh GAR261", "costo": 104, "cliente": 190, "usuario": 245, "piezas": 0}, {"prov": "GDL", "prod": "Power Bank con Cables 10,000 mAh GAR148", "costo": 134, "cliente": 220, "usuario": 270, "piezas": 0}, {"prov": "GDL", "prod": "Cable T.C Carga Rápida 3 Amp CAB251", "costo": 11, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Cargador Carro Doble USB 2 Amp GAR128", "costo": 16, "cliente": 50, "usuario": 65, "piezas": 30}, {"prov": "GDL", "prod": "Soporte Magnético para Celular PJ097", "costo": 16, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Cable T.C - iPhone CAB258", "costo": 18.5, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Cable T.C - T.C CAB252", "costo": 13.5, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Cable Pulpo CAB259", "costo": 27.5, "cliente": 80, "usuario": 120, "piezas": 0}, {"prov": "GDL", "prod": "Cargador Doble T.C y USB GAR161", "costo": 40.5, "cliente": 80, "usuario": 100, "piezas": 0}, {"prov": "GDL", "prod": "Mouse Inalámbrico RAT001", "costo": 58.5, "cliente": 105, "usuario": 135, "piezas": 0}, {"prov": "GDL", "prod": "Audífonos Inalámbricos de Colores INPODS12", "costo": 45, "cliente": 120, "usuario": 150, "piezas": 0}, {"prov": "GDL", "prod": "Cable HDMI 3 M", "costo": 24, "cliente": 50, "usuario": 65, "piezas": 0}, {"prov": "GDL", "prod": "Tira Led de 5 Mts", "costo": 69, "cliente": 125, "usuario": 160, "piezas": 5}, {"prov": "GDL", "prod": "Bocina BOC060", "costo": 165, "cliente": 255, "usuario": 310, "piezas": 3}, {"prov": "GDL", "prod": "Bocina BOC062", "costo": 113.5, "cliente": 210, "usuario": 275, "piezas": 0}, {"prov": "GDL", "prod": "Bocina BOC241", "costo": 232, "cliente": 400, "usuario": 510, "piezas": 1}, {"prov": "GDL", "prod": "Bocina BOC242", "costo": 171, "cliente": 300, "usuario": 390, "piezas": 3}, {"prov": "GDL", "prod": "Bocina BOC243", "costo": 135.5, "cliente": 215, "usuario": 260, "piezas": 0}, {"prov": "GDL", "prod": "Bocina BOC244", "costo": 140.5, "cliente": 260, "usuario": 340, "piezas": 0}, {"prov": "GDL", "prod": "Bocina BOC250", "costo": 335.5, "cliente": 600, "usuario": 780, "piezas": 1}, {"prov": "GDL", "prod": "Audífonos Earpods (para iPhone)", "costo": 39.5, "cliente": 70, "usuario": 90, "piezas": 5}, {"prov": "GDL", "prod": "Audífonos (para T.C.) AUT125", "costo": 37, "cliente": 70, "usuario": 90, "piezas": 5}, {"prov": "GDL", "prod": "Cargador Con Cable T.C. a T.C. GAR153", "costo": 43, "cliente": 80, "usuario": 100, "piezas": 10}, {"prov": "GDL", "prod": "Cargador Con Cable T.C. a iPhone GAR154", "costo": 46, "cliente": 80, "usuario": 100, "piezas": 10}, {"prov": "GDL", "prod": "Cargador Carga Rápida 20W GAR152", "costo": 32.5, "cliente": 80, "usuario": 120, "piezas": 10}, {"prov": "GDL", "prod": "Cargador Carga Rápida 30W GAR164", "costo": 55.5, "cliente": 130, "usuario": 160, "piezas": 10}, {"prov": "GDL", "prod": "Cargador T.C. 45W GAR172", "costo": 66, "cliente": 150, "usuario": 180, "piezas": 10}, {"prov": "GDL", "prod": "Cargador Carga Rápida 45W GAR171", "costo": 101.5, "cliente": 210, "usuario": 250, "piezas": 0}, {"prov": "GDL", "prod": "Receptor Bluetooth XO8127", "costo": 32, "cliente": 65, "usuario": 85, "piezas": 6}, {"prov": "GDL", "prod": "Soporte Universal Con Base Giratoria (Base Metal)", "costo": 21.5, "cliente": 45, "usuario": 60, "piezas": 0}, {"prov": "GDL", "prod": "Cargador Inalámbrico 1 Hora GAR151", "costo": 85.5, "cliente": 180, "usuario": 220, "piezas": 6}, {"prov": "G Tide", "prod": "Audífonos Clip On (G-TIDE)", "costo": 118, "cliente": 250, "usuario": 300, "piezas": 15}, {"prov": "G Tide", "prod": "Bocina Inalámbrica para Bicicleta (Min. 5 pz)", "costo": 122, "cliente": 210, "usuario": 260, "piezas": 8}, {"prov": "G Tide", "prod": "Audífonos Deportivos (Min. 5 pz) AC01", "costo": 99, "cliente": 210, "usuario": 260, "piezas": 3}, {"prov": "G Tide", "prod": "Audífonos Chicos Colores L22 (5 pz)", "costo": 89, "cliente": 160, "usuario": 190, "piezas": 8}];
+/* ============ CATALOGO COMPARTIDO CON LA APP DE NOTAS DE VENTA ============
+   Las dos guardan los productos en la MISMA llave ("mte_catalogo"). Por eso,
+   si aqui cambias un precio o un nombre, alla se ve igual, y al reves.
+   Solo funciona entre apps del MISMO aparato (un celular no ve lo del otro,
+   ni la compu ve lo del celular): para pasar de un aparato a otro esta el
+   boton "Enviar precios a la app".
+   Las piezas por pedir son solo de aqui, van aparte en "mte_pedido". */
+const KEY_CAT="mte_catalogo";
+const KEY_PED="mte_pedido";
+const KEY_VIEJO="cotizador_compras_v3";   // guardado de la version anterior
+const KEY_GRAD="cotizador_grad";          // extremos del degradado de utilidad
+let CAT=[], redT=70, greenT=150, onlyBuy=false;
+const byProd=(a,b)=>a.prod.localeCompare(b.prod,'es',{sensitivity:'base'});
+
+function nuevoId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function deFabrica(){
+  return ORIGINAL.map(x=>({id:nuevoId(),nombre:x.prod,precio:x.cliente,
+    costo:x.costo,precioUsuario:x.usuario,proveedor:x.prov}));
+}
+// Reconoce el mismo producto aunque le hayan cambiado el nombre (por codigo,
+// y por palabras clave para los que no traen codigo).
+function llaveProd(n){
+  const p=String(n).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const claves=[["hdmi"],["tiraled"],["earpods"],["soporteuniversal"],["gtide"],["l22"],["bicicleta"]];
+  const g=claves.find(g=>g.every(w=>p.includes(w)));
+  if(g)return g.join("-");
+  const m=String(n).toUpperCase().match(/\b[A-Z]{2,}-?\d{2,}\b/g);
+  const c=m?m[m.length-1]:null;
+  return c?({"CA252":"CAB252","ST-216":"EZ-165"}[c]||c):p;
+}
+function load(){
+  let cat=null;
+  try{cat=JSON.parse(localStorage.getItem(KEY_CAT));}catch(e){}
+  if(!Array.isArray(cat)||!cat.length){cat=deFabrica();
+    try{localStorage.setItem(KEY_CAT,JSON.stringify(cat));}catch(e){}}
+  let ped={};
+  try{ped=JSON.parse(localStorage.getItem(KEY_PED))||{};}catch(e){}
+  // Una sola vez: rescata las piezas que ya tenias capturadas en la version anterior.
+  if(!localStorage.getItem(KEY_PED+"_migrado")){
+    try{
+      const viejo=JSON.parse(localStorage.getItem(KEY_VIEJO));
+      if(Array.isArray(viejo)){
+        const porLlave={};cat.forEach(p=>{porLlave[llaveProd(p.nombre)]=p.id;});
+        for(const v of viejo){
+          const id=porLlave[llaveProd(v.prod||"")];
+          if(id&&v.piezas>0)ped[id]=(ped[id]||0)+v.piezas;
+        }
+        localStorage.setItem(KEY_PED,JSON.stringify(ped));
+      }
+    }catch(e){}
+    try{localStorage.setItem(KEY_PED+"_migrado","1");}catch(e){}
+  }
+  CAT=cat.map(p=>({_id:p.id,_raw:p,prov:p.proveedor||"",prod:p.nombre,
+    costo:p.costo,cliente:p.precio,usuario:p.precioUsuario,piezas:ped[p.id]||0}));
+  try{const t=JSON.parse(localStorage.getItem(KEY_GRAD));if(t){redT=t.redT??70;greenT=t.greenT??150;}}catch(e){}
+}
+function save(){
+  // Se conserva cualquier dato del producto que la app guarde y aqui no se use.
+  const cat=CAT.map(x=>Object.assign({},x._raw||{},{id:x._id,nombre:x.prod,
+    precio:(x.cliente==null?0:x.cliente),costo:x.costo,
+    precioUsuario:x.usuario,proveedor:x.prov}));
+  const ped={};CAT.forEach(x=>{if(x.piezas>0)ped[x._id]=x.piezas;});
+  try{localStorage.setItem(KEY_CAT,JSON.stringify(cat));
+      localStorage.setItem(KEY_PED,JSON.stringify(ped));}catch(e){}
+}
+function saveThr(){try{localStorage.setItem(KEY_GRAD,JSON.stringify({redT,greenT}));}catch(e){}}
+
+// Si cambiaste algo en la app de Notas, al regresar aqui se ve al instante.
+function recargarSiCambio(){
+  const foto=()=>JSON.stringify(CAT.map(x=>[x._id,x.prod,x.costo,x.cliente,x.usuario,x.prov]));
+  const antes=foto(); load();
+  if(antes!==foto()){sub.textContent=CAT.length+" productos en el catálogo";
+    fillProvSelects();renderCot();renderPl();}
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)recargarSiCambio();});
+window.addEventListener("focus",recargarSiCambio);
+window.addEventListener("storage",e=>{if(e.key===KEY_CAT||e.key===KEY_PED)recargarSiCambio();});
+const mx=n=>"$"+Math.round(n).toLocaleString("es-MX");
+const mx2=n=>"$"+(Math.round(n*100)/100).toLocaleString("es-MX");
+const esc=s=>(s||"").replace(/"/g,'&quot;');
+function margin(x){return (x.costo&&x.cliente)?((x.cliente-x.costo)/x.costo*100):null;}
+
+/* ---------- DEGRADADO DE UTILIDAD (rojo -> naranja -> amarillo -> verde) ----------
+   Los 4 colores base son los de una paleta ya validada para daltonismo y
+   contraste. La mezcla entre ellos se hace en OKLab, no en RGB: en RGB los
+   pasos intermedios salen grises y lodosos, en OKLab el degradado avanza
+   parejo a como lo ve el ojo.
+   El numero SIEMPRE se imprime; el color solo acompana. Asi el dato se lee
+   aunque el color no se distinga (impresion en blanco y negro, daltonismo). */
+const ANCLAS=["#d03b3b","#ec835a","#fab219","#0ca30c"].map(h=>rgb2oklab(hex2rgb(h)));
+function hex2rgb(h){return [1,3,5].map(i=>parseInt(h.slice(i,i+2),16));}
+function rgb2oklab(c){
+  const f=v=>{v/=255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);};
+  const R=f(c[0]),G=f(c[1]),B=f(c[2]);
+  const l=Math.cbrt(0.4122214708*R+0.5363325363*G+0.0514459929*B);
+  const m=Math.cbrt(0.2119034982*R+0.6806995451*G+0.1073969566*B);
+  const s=Math.cbrt(0.0883024619*R+0.2817188376*G+0.6299787005*B);
+  return [0.2104542553*l+0.7936177850*m-0.0040720468*s,
+          1.9779984951*l-2.4285922050*m+0.4505937099*s,
+          0.0259040371*l+0.7827717662*m-0.8086757660*s];
+}
+function oklab2hex(L,a,bb){
+  const l=Math.pow(L+0.3963377774*a+0.2158037573*bb,3);
+  const m=Math.pow(L-0.1055613458*a-0.0638541728*bb,3);
+  const s=Math.pow(L-0.0894841775*a-1.2914855480*bb,3);
+  const c=v=>{v=v<=0.0031308?12.92*v:1.055*Math.pow(Math.max(v,0),1/2.4)-0.055;
+    return Math.max(0,Math.min(255,Math.round(v*255))).toString(16).padStart(2,"0");};
+  return "#"+c(4.0767416621*l-3.3077115913*m+0.2309699292*s)
+            +c(-1.2684380046*l+2.6097574011*m-0.3413193965*s)
+            +c(-0.0041960863*l-0.7034186147*m+1.7076147010*s);
+}
+function rampa(t){
+  t=Math.max(0,Math.min(1,t));
+  const n=ANCLAS.length-1,i=Math.min(n-1,Math.floor(t*n)),f=t*n-i;
+  const A=ANCLAS[i],B=ANCLAS[i+1];
+  return [0,1,2].map(k=>A[k]+(B[k]-A[k])*f);
+}
+/* L fija + croma escalado: asi el texto conserva el tono pero siempre tiene
+   contraste suficiente contra su propio fondo (medido: 6.3:1 en el peor punto,
+   AA pide 4.5:1). */
+function tono(t,L,kc){const r=rampa(t);return oklab2hex(L==null?r[0]:L,r[1]*kc,r[2]*kc);}
+function posicion(m){return greenT>redT?(m-redT)/(greenT-redT):(m>=greenT?1:0);}
+function chipUtilidad(x){
+  const m=margin(x);
+  if(m==null)return '<span class="mchip mnone" title="Falta el precio de venta">—</span>';
+  const t=posicion(m),g=x.cliente-x.costo;
+  return '<span class="mchip" style="background:'+tono(t,0.88,0.40)+';color:'+tono(t,0.38,0.98)+'"'+
+    ' title="Utilidad '+Math.round(m)+'% sobre tu costo — te deja '+mx2(g)+' por pieza">'+Math.round(m)+'%</span>';
+}
+function pintarLeyenda(){
+  const st=[];for(let i=0;i<=12;i++)st.push(tono(i/12,0.78,0.62)+" "+Math.round(i/12*100)+"%");
+  const css="linear-gradient(90deg,"+st.join(",")+")";
+  ["gradbar","gradbar2"].forEach(id=>{const e=document.getElementById(id);if(e)e.style.background=css;});
+  ["legLow","legLow2"].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=redT+"%";});
+  ["legHigh","legHigh2"].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=greenT+"%";});
+}
+
+function provOrder(){const o=[];CAT.forEach(x=>{if(!o.includes(x.prov))o.push(x.prov);});return o;}
+function fillProvSelects(){
+  const o=provOrder().filter(p=>p);
+  const opt='<option value="">Todos</option>'+o.map(p=>'<option value="'+esc(p)+'">'+p+'</option>').join('');
+  const cur=fProv.value; fProv.innerHTML=opt; fProv.value=cur;
+  pProv.innerHTML=opt;
+  provs.innerHTML=o.map(p=>'<option value="'+esc(p)+'">').join('');
+}
+
+/* ---------- COTIZADOR ---------- */
+function toggleOnly(){onlyBuy=!onlyBuy;bOnly.classList.toggle('on',onlyBuy);renderCot();}
+function setQty(id,v){
+  let n=parseInt(v,10);if(isNaN(n)||n<0)n=0;
+  const it=CAT.find(x=>x._id==id);it.piezas=n;save();
+  const tr=document.querySelector('tr[data-id="'+id+'"]');
+  if(tr){const t=it.costo*n,td=tr.querySelector('.tot');td.textContent=mx(t);td.classList.toggle('z',n===0);tr.classList.toggle('has',n>0);}
+  updateFoot();
+  if(onlyBuy&&n===0)renderCot();
+}
+function updateFoot(){
+  let tot=0,pz=0,ln=0;CAT.forEach(x=>{const n=x.piezas||0;tot+=x.costo*n;pz+=n;if(n>0)ln++;});
+  fTotal.textContent=mx(tot);fPiezas.textContent=pz.toLocaleString("es-MX");fLineas.textContent=ln;
+}
+function renderCot(){
+  const q=(qCot.value||"").toLowerCase().trim();
+  const pf=fProv.value;
+  const dividers=(!q && pf==='');
+  const o=provOrder(),b=bodyCot;b.innerHTML="";let i=0,last=null;
+  o.forEach(pv=>{
+    if(pf!=='' && pv!==pf) return;
+    const items=CAT.filter(x=>x.prov===pv).sort(byProd);
+    items.forEach(x=>{
+      if(q && !x.prod.toLowerCase().includes(q)) return;
+      if(onlyBuy && !(x.piezas>0)) return;
+      i++;
+      if(dividers && pv!==last){last=pv;const d=document.createElement('tr');d.className='divider';
+        d.innerHTML='<td colspan="6">'+(pv||'—')+'</td>';b.appendChild(d);}
+      const n=x.piezas||0,t=x.costo*n;
+      const tr=document.createElement('tr');tr.dataset.id=x._id;if(n>0)tr.className='has';
+      tr.innerHTML='<td class="num">'+i+'</td>'+
+        '<td class="prod">'+chipUtilidad(x)+x.prod+'</td>'+
+        '<td class="r money">'+mx2(x.costo)+'</td>'+
+        '<td class="c"><input class="qty" type="number" min="0" inputmode="numeric" value="'+n+'" oninput="setQty(\''+x._id+'\',this.value)"></td>'+
+        '<td class="r tot money'+(n===0?' z':'')+'">'+mx(t)+'</td>'+
+        '<td class="c noprint"><span class="edit" onclick="openEdit(\''+x._id+'\')">✎</span></td>';
+      b.appendChild(tr);
+    });
+  });
+  if(i===0)b.innerHTML='<tr><td colspan="6" style="text-align:center;color:#8a92a0;padding:24px">Sin resultados</td></tr>';
+  updateFoot();
+}
+
+/* ---------- PRECIOS ---------- */
+let showCost=false;
+function toggleCost(){
+  showCost=!showCost;btnCost.textContent=showCost?'Ocultar costo':'Mostrar costo';
+  document.querySelectorAll('.costcol').forEach(el=>el.classList.toggle('hide',!showCost));renderPl();
+}
+function setThr(){redT=parseFloat(tRed.value)||0;greenT=parseFloat(tGreen.value)||0;saveThr();pintarLeyenda();renderPl();renderCot();}
+function renderPl(){
+  const q=(qPl.value||"").toLowerCase().trim(),b=bodyPl;b.innerHTML="";
+  const list=[...CAT].sort(byProd);let i=0;
+  list.forEach(x=>{
+    if(q && !x.prod.toLowerCase().includes(q)) return;i++;
+    const g=(x.costo!=null&&x.cliente!=null)?(x.cliente-x.costo):null;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="prod">'+x.prod+'</td>'+
+      '<td class="r money costcol'+(showCost?'':' hide')+'">'+(x.costo!=null?mx2(x.costo):'—')+'</td>'+
+      '<td class="r money">'+(x.cliente!=null?mx(x.cliente):'—')+'</td>'+
+      '<td class="r money">'+(x.usuario!=null?mx(x.usuario):'—')+'</td>'+
+      '<td class="r mcell costcol'+(showCost?'':' hide')+'">'+chipUtilidad(x)+
+        (g!=null?'<span class="pz">+'+mx2(g)+'</span>':'')+'</td>';
+    b.appendChild(tr);
+  });
+  if(i===0)b.innerHTML='<tr><td colspan="5" style="text-align:center;color:#8a92a0;padding:24px">Sin resultados</td></tr>';
+}
+
+/* ---------- MODAL producto ---------- */
+let editId=null;
+function openAdd(){editId=null;mTitle.textContent="Agregar producto";mDel.classList.add('hide');
+  mProv.value="";mProd.value="";mCosto.value="";mCli.value="";mUsu.value="";fillProvSelects();ov.classList.remove('hide');mProd.focus();}
+function openEdit(id){const x=CAT.find(v=>v._id==id);editId=id;mTitle.textContent="Editar producto";mDel.classList.remove('hide');
+  mProv.value=x.prov||"";mProd.value=x.prod||"";mCosto.value=x.costo??"";mCli.value=x.cliente??"";mUsu.value=x.usuario??"";fillProvSelects();ov.classList.remove('hide');}
+function closeM(){ov.classList.add('hide');}
+function num(v){if(v===""||v==null)return null;const n=parseFloat(v);return isNaN(n)?null:n;}
+function saveM(){
+  const prod=(mProd.value||"").trim();if(!prod){alert("Escribe el nombre del producto.");return;}
+  const obj={prov:(mProv.value||"").trim(),prod:prod,costo:num(mCosto.value)||0,cliente:num(mCli.value),usuario:num(mUsu.value)};
+  if(editId==null){obj.piezas=0;obj._id=nuevoId();CAT.push(obj);}
+  else{const x=CAT.find(v=>v._id==editId);Object.assign(x,obj);}
+  save();closeM();fillProvSelects();renderCot();renderPl();
+}
+function delItem(){if(editId==null)return;const x=CAT.find(v=>v._id==editId);
+  if(!confirm('¿Eliminar "'+x.prod+'"?'))return;CAT=CAT.filter(v=>v._id!=editId);save();closeM();fillProvSelects();renderCot();renderPl();}
+
+/* ---------- MODAL ajustar precios ---------- */
+function openAdj(){ovA.classList.remove('hide');}
+function closeAdj(){ovA.classList.add('hide');}
+function applyAdj(){
+  const t=aTarget.value,pct=parseFloat(aPct.value)||0,rnd=parseInt(aRound.value)||0;
+  if(!confirm("¿Aplicar el cambio a los precios? Modifica tu catálogo."))return;
+  CAT.forEach(x=>{['cliente','usuario'].forEach(k=>{
+    const hit=(t==='both')||(t==='cli'&&k==='cliente')||(t==='usu'&&k==='usuario');
+    if(hit&&x[k]!=null){let v=x[k]*(1+pct/100);v=rnd?Math.round(v/rnd)*rnd:Math.round(v);x[k]=v;}
+  });});
+  save();closeAdj();renderCot();renderPl();
+}
+
+/* ---------- MODAL pedido ---------- */
+function openPedido(){fillProvSelects();pProv.value=fProv.value||"";buildPed();ovP.classList.remove('hide');}
+function closePed(){ovP.classList.add('hide');}
+function buildPed(){
+  const prov=pProv.value;
+  const o=provOrder().filter(p=>prov===''||p===prov);
+  let lines=[],tot=0,pz=0;
+  lines.push(prov?("Pedido — "+prov):"Pedido de compra");
+  lines.push(new Date().toLocaleDateString('es-MX'));
+  lines.push("");
+  let any=false;
+  o.forEach(p=>{
+    const items=CAT.filter(x=>x.prov===p&&(x.piezas||0)>0).sort(byProd);
+    if(!items.length)return;
+    if(prov==='' && provOrder().filter(pp=>CAT.some(x=>x.prov===pp&&x.piezas>0)).length>1)
+      lines.push("["+(p||'—')+"]");
+    items.forEach(x=>{any=true;lines.push("• "+x.prod+" — "+x.piezas+" pz");tot+=x.costo*x.piezas;pz+=x.piezas;});
+    if(prov==='')lines.push("");
+  });
+  if(!any){pText.value="No hay productos con piezas capturadas.";return;}
+  lines.push("Total: "+pz+" piezas · "+mx(tot));
+  pText.value=lines.join("\n");
+}
+function copyPed(){
+  const t=pText.value;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>flash("Copiado"),()=>fallbackCopy(t));}
+  else fallbackCopy(t);
+}
+function fallbackCopy(t){pText.removeAttribute('readonly');pText.select();try{document.execCommand('copy');flash("Copiado");}catch(e){alert("Selecciona y copia manualmente.");}pText.setAttribute('readonly','');}
+function waPed(){window.open("https://wa.me/?text="+encodeURIComponent(pText.value),"_blank");}
+function flash(msg){const o=document.activeElement;const b=event&&event.target;if(b&&b.tagName==='BUTTON'){const old=b.textContent;b.textContent="✓ "+msg;setTimeout(()=>b.textContent=old,1200);}}
+
+/* ---------- ACCIONES ---------- */
+function limpiar(){if(!confirm("¿Poner todas las piezas en 0?"))return;CAT.forEach(x=>x.piezas=0);save();renderCot();}
+function restaurar(){
+  if(!confirm("¿Volver al catálogo y precios de fábrica?\n\nOJO: este catálogo es el MISMO que usa la app de Notas de Venta, así que también se le cambia allá. Se pierden los precios que hayas ajustado."))return;
+  CAT=ORIGINAL.map(x=>({_id:nuevoId(),prov:x.prov,prod:x.prod,costo:x.costo,
+    cliente:x.cliente,usuario:x.usuario,piezas:x.piezas||0}));
+  save();fillProvSelects();renderCot();renderPl();}
+function backup(){
+  const data=JSON.stringify(CAT.map(({_id,...r})=>r),null,2);
+  const blob=new Blob([data],{type:"application/json"});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download="cotizador_respaldo_"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);
+}
+/* Puente hacia la app de Notas de Venta: aqui se editan los precios una sola
+   vez y alla se importan, en vez de capturarlos dos veces y que se desfasen.
+   Se manda TODO (aunque no tenga precio de venta) para que la app pueda
+   actualizar costo y proveedor de lo que ya tiene. */
+function exportarApp(){
+  const datos={
+    tipo:"catalogo-cotizador", version:1, fecha:new Date().toISOString(),
+    productos: CAT.map(x=>({
+      nombre:(x.prod||"").replace(/\s+/g," ").trim(),
+      proveedor:(x.prov||"").trim(),
+      costo:(x.costo!=null&&x.costo!=="")?Number(x.costo):null,
+      precio:(x.cliente!=null&&x.cliente!=="")?Number(x.cliente):null,
+      precioUsuario:(x.usuario!=null&&x.usuario!=="")?Number(x.usuario):null,
+    })),
+  };
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:"application/json"});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download="precios-para-la-app-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();URL.revokeObjectURL(a.href);
+  const conPrecio=datos.productos.filter(x=>x.precio!=null).length;
+  alert("Listo: "+datos.productos.length+" productos ("+conPrecio+" con precio de venta)."+
+        "\n\nAbre la app de Notas de Venta y entra a:\n"+
+        "Ajustes › 🔗 Traer precios del Cotizador");
+}
+
+function importar(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const arr=JSON.parse(r.result);if(!Array.isArray(arr)||!arr.length||arr[0].prod===undefined)throw 0;
+    CAT=arr.map(x=>({_id:nuevoId(),prov:x.prov||"",prod:x.prod,costo:x.costo,
+      cliente:x.cliente,usuario:x.usuario,piezas:x.piezas||0}));
+    save();fillProvSelects();renderCot();renderPl();alert("Copia restaurada.");}
+  catch(_){alert("Archivo no válido.");}};r.readAsText(f);e.target.value="";}
+
+function showTab(t){const cot=t==='cot';secCot.classList.toggle('hide',!cot);secPl.classList.toggle('hide',cot);
+  tCot.classList.toggle('on',cot);tPl.classList.toggle('on',!cot);foot.classList.toggle('hide',!cot);}
+
+/* ---------- Instalarlo en el celular y que funcione sin internet ---------- */
+let avisoInstalar=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();avisoInstalar=e;bInstalar.classList.remove("hide");});
+window.addEventListener("appinstalled",()=>{
+  avisoInstalar=null;bInstalar.classList.add("hide");});
+function instalarApp(){
+  if(!avisoInstalar){
+    alert("Abre el menú ⋮ de Chrome (arriba a la derecha) y elige\n“Instalar aplicación” o “Agregar a pantalla de inicio”.");
+    return;
+  }
+  avisoInstalar.prompt();
+  Promise.resolve(avisoInstalar.userChoice).catch(()=>{}).then(()=>{
+    avisoInstalar=null;bInstalar.classList.add("hide");});
+}
+if("serviceWorker" in navigator){
+  let recargado=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(!recargado){recargado=true;location.reload();}});
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+    reg.update();
+    reg.addEventListener("updatefound",()=>{
+      const nuevo=reg.installing;if(!nuevo)return;
+      nuevo.addEventListener("statechange",()=>{
+        if(nuevo.state==="installed"&&navigator.serviceWorker.controller)
+          nuevo.postMessage({type:"SKIP_WAITING"});});});
+  }).catch(()=>{/* abierto como archivo suelto: sigue funcionando igual */});
+}
+
+load();
+tRed.value=redT;tGreen.value=greenT;pintarLeyenda();
+sub.textContent=CAT.length+" productos en el catálogo";
+fillProvSelects();renderCot();renderPl();
+[ov,ovA,ovP].forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hide');}));
+</script>
+</body>
+</html>

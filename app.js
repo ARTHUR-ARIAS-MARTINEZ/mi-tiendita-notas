@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v27 · 18 ago 2026 · Vitrina";
+const APP_VERSION = "v29 · 20 ago 2026 · Cotizador unido";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -75,6 +75,7 @@ function catalogoDeFabrica() {
   return CATALOGO_DEFAULT.map(p => ({
     id: uid(), nombre: p.nombre, precio: p.precio,
     costo: p.costo ?? null, precioUsuario: p.precioUsuario ?? null,
+    proveedor: p.proveedor || "",
   }));
 }
 
@@ -99,9 +100,11 @@ function sanearCatalogo(valor) {
     const id = (typeof item.id === "string" && item.id) ? item.id : uid();
     const costo = normalizarCosto(item.costo);
     const precioUsuario = normalizarCosto(item.precioUsuario);
+    const proveedor = typeof item.proveedor === "string" ? item.proveedor.trim() : "";
     if (nombre !== item.nombre || precio !== item.precio || id !== item.id
-        || costo !== (item.costo ?? null) || precioUsuario !== (item.precioUsuario ?? null)) reparado = true;
-    return { ...item, id, nombre, precio, costo, precioUsuario };
+        || costo !== (item.costo ?? null) || precioUsuario !== (item.precioUsuario ?? null)
+        || proveedor !== (item.proveedor ?? "")) reparado = true;
+    return { ...item, id, nombre, precio, costo, precioUsuario, proveedor };
   });
   return { lista, reparado };
 }
@@ -215,13 +218,19 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   const FLAG = "mte_migr_catalogo_2026_07";
   if (localStorage.getItem(FLAG)) return;
   if (State.catalogo) {
+    // Se compara por nombre Y por código (CAB236, GAR063…): si le cambiaste el
+    // nombre a un producto, se reconoce igual y NO se agrega repetido.
     const existentes = new Set(State.catalogo.map(p => p.nombre.trim().toLowerCase()));
+    const codigos = new Set(State.catalogo.map(p => codigoDeProducto(p.nombre)).filter(Boolean));
     let cambió = false;
     for (const p of CATALOGO_DEFAULT) {
-      if (!existentes.has(p.nombre.trim().toLowerCase())) {
-        State.catalogo.push({ id: uid(), nombre: p.nombre, precio: p.precio });
-        cambió = true;
-      }
+      if (existentes.has(p.nombre.trim().toLowerCase())) continue;
+      const codigo = codigoDeProducto(p.nombre);
+      if (codigo && codigos.has(codigo)) continue;
+      State.catalogo.push({ id: uid(), nombre: p.nombre, precio: p.precio });
+      if (codigo) codigos.add(codigo);
+      existentes.add(p.nombre.trim().toLowerCase());
+      cambió = true;
     }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
@@ -330,13 +339,21 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
     }
 
     // 2) Productos nuevos que aún no estén en el catálogo del celular.
+    //    Se compara por NOMBRE y también por CÓDIGO (CAB236, GAR063…): si le
+    //    cambiaste el nombre a un producto, se reconoce igual y NO se duplica.
     const existentes = new Set(State.catalogo.map(p => String(p.nombre || "").trim().toLowerCase()));
+    const codigos = new Set(State.catalogo.map(p => codigoDeProducto(p.nombre)).filter(Boolean));
     for (const p of CATALOGO_DEFAULT) {
       if (existentes.has(p.nombre.trim().toLowerCase())) continue;
+      const codigo = codigoDeProducto(p.nombre);
+      if (codigo && codigos.has(codigo)) continue;
       State.catalogo.push({
         id: uid(), nombre: p.nombre, precio: p.precio,
         costo: p.costo ?? null, precioUsuario: p.precioUsuario ?? null,
+        proveedor: p.proveedor || "",
       });
+      if (codigo) codigos.add(codigo);
+      existentes.add(p.nombre.trim().toLowerCase());
       cambió = true;
     }
 
@@ -465,6 +482,7 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   if (localStorage.getItem(FLAG)) return;
   if (Array.isArray(State.catalogo)) {
     const yaEsta = State.catalogo.some(p => String(p.nombre || "").toLowerCase().includes("l22"));
+    // (el "includes l22" ya cubre el caso de que le hayas cambiado el nombre)
     if (!yaEsta) {
       State.catalogo.push({ id: uid(), nombre: "Audífonos Chicos Colores L22 (5 pz)", precio: 160, costo: 89, precioUsuario: 190 });
       saveJSON(STORE_KEYS.catalogo, State.catalogo);
@@ -484,6 +502,66 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       if (!String(p.nombre || "").toLowerCase().includes("l22")) continue;
       if (normalizarCosto(p.costo) === null) { p.costo = 89; cambió = true; }
     }
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: sincroniza el catálogo con el Cotizador de Compras (2026-08-20).
+// Es ADITIVA: solo pone el proveedor donde falta, corrige el costo del GAR161
+// (venía $46, el real es $40.50) y agrega el Cargador Inalámbrico GAR151.
+// NO toca precios que tú hayas cambiado a mano, y respeta el GAR063 en $35
+// (las etiquetas físicas ya pegadas dicen ese precio).
+(function sincronizarConCotizador() {
+  const FLAG = "mte_migr_cotizador_2026_08_20";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambió = false;
+
+    // a) Proveedor: se copia del catálogo de fábrica al que ya está en el celular.
+    const provPorCodigo = {}, provPorNombre = {};
+    for (const p of CATALOGO_DEFAULT) {
+      if (!p.proveedor) continue;
+      const c = codigoDeProducto(p.nombre);
+      if (c) provPorCodigo[c] = p.proveedor;
+      provPorNombre[soloAlfanumerico(normalizarTexto(p.nombre))] = p.proveedor;
+    }
+    for (const p of State.catalogo) {
+      if (p.proveedor) continue; // si tú ya lo capturaste, se respeta
+      const c = codigoDeProducto(p.nombre);
+      const prov = (c && provPorCodigo[c]) || provPorNombre[soloAlfanumerico(normalizarTexto(p.nombre))];
+      if (prov) { p.proveedor = prov; cambió = true; }
+    }
+
+    // b) Costo real del Cargador Doble T.C y USB GAR161.
+    for (const p of State.catalogo) {
+      if (codigoDeProducto(p.nombre) === "GAR161" && normalizarCosto(p.costo) === 46) {
+        p.costo = 40.5; cambió = true;
+      }
+    }
+
+    // c) Precio de etiqueta del GAR164: eran $180, el bueno es $160.
+    //    Solo se corrige si sigue en $180 (si tú ya le pusiste otro, se respeta).
+    for (const p of State.catalogo) {
+      if (codigoDeProducto(p.nombre) === "GAR164" && normalizarCosto(p.precioUsuario) === 180) {
+        p.precioUsuario = 160; cambió = true;
+      }
+    }
+
+    // d) Productos nuevos, cada uno solo si no lo tienes ya.
+    const NUEVOS = [
+      { nombre: "Cargador Inalámbrico 1 Hora GAR151", precio: 180, costo: 85.5, precioUsuario: 220, proveedor: "GDL" },
+      { nombre: "Cargador T.C. 45W GAR172", precio: 150, costo: 66, precioUsuario: 180, proveedor: "GDL" },
+    ];
+    for (const nuevo of NUEVOS) {
+      const codigo = codigoDeProducto(nuevo.nombre);
+      const nombre = nuevo.nombre.trim().toLowerCase();
+      if (State.catalogo.some(p => codigoDeProducto(p.nombre) === codigo
+          || String(p.nombre || "").trim().toLowerCase() === nombre)) continue;
+      State.catalogo.push({ id: uid(), ...nuevo });
+      cambió = true;
+    }
+
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
   localStorage.setItem(FLAG, "1");
@@ -639,16 +717,33 @@ function disponibleParaVender(p) {
 // Un novedoso que ya está en el carrito se queda visible aunque su existencia
 // llegue a 0 con esta misma venta, para poder corregir la cantidad.
 function productosDeVitrina() {
-  const principales = State.catalogo.filter(p => esProductoPrincipal(p.nombre));
-  const novedosos = State.catalogo.filter(p =>
+  const ordenado = catalogoOrdenado();
+  const principales = ordenado.filter(p => esProductoPrincipal(p.nombre));
+  const novedosos = ordenado.filter(p =>
     !esProductoPrincipal(p.nombre) && (stockDe(p) > 0 || enCarrito(p.id) > 0));
   return principales.concat(novedosos);
+}
+
+// Orden en el que se ven los productos en TODA la app: primero los 4
+// principales (los de consignación, en su orden de siempre) y después todos
+// los demás por orden alfabético.
+function ordenPrincipal(nombre) {
+  const n = String(nombre || "").toUpperCase();
+  const i = CODIGOS_PRODUCTOS_PRINCIPALES.findIndex(cod => n.includes(cod));
+  return i === -1 ? 99 : i;
+}
+function catalogoOrdenado() {
+  const principales = [], resto = [];
+  for (const p of State.catalogo) (esProductoPrincipal(p.nombre) ? principales : resto).push(p);
+  principales.sort((a, b) => ordenPrincipal(a.nombre) - ordenPrincipal(b.nombre));
+  resto.sort((a, b) => String(a.nombre).localeCompare(String(b.nombre), "es", { sensitivity: "base" }));
+  return principales.concat(resto);
 }
 
 function renderCatalogoPicker(filter) {
   const cont = document.getElementById("catalogo-picker");
   const f = (filter || document.getElementById("producto-buscar")?.value || "").trim();
-  const productos = buscarEnLista(State.catalogo, f, p => p.nombre);
+  const productos = buscarEnLista(catalogoOrdenado(), f, p => p.nombre);
   if (productos.length === 0) {
     cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
     return;
@@ -1324,7 +1419,7 @@ function renderExistencias(filtro) {
   const cont = document.getElementById("existencias-list");
   if (!cont) return;
   const f = filtro !== undefined ? filtro : (document.getElementById("existencias-buscar")?.value || "");
-  const lista = buscarEnLista(State.catalogo, f, p => p.nombre);
+  const lista = buscarEnLista(catalogoOrdenado(), f, p => p.nombre);
   if (lista.length === 0) {
     cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
     return;
@@ -1448,9 +1543,18 @@ function quitarFoto(id) {
   toast("Foto quitada.");
 }
 
+// Los proveedores que ya usas, para sugerirlos al escribir (sin inventar ninguno).
+function proveedoresUsados() {
+  const set = new Set();
+  for (const p of State.catalogo) if (p.proveedor) set.add(p.proveedor);
+  return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+}
+
 function renderProductosAjustes() {
   const cont = document.getElementById("productos-admin-list");
-  cont.innerHTML = State.catalogo.map(p => {
+  const datalist = document.getElementById("proveedores-lista");
+  if (datalist) datalist.innerHTML = proveedoresUsados().map(v => `<option value="${escapeHtml(v)}">`).join("");
+  cont.innerHTML = catalogoOrdenado().map(p => {
     const costo = normalizarCosto(p.costo);
     const utilidad = costo === null ? null : (Number(p.precio) || 0) - costo;
     return `
@@ -1464,7 +1568,13 @@ function renderProductosAjustes() {
         <label>Precio cliente<input type="number" min="0" step="0.01" value="${p.precio}" onchange="editarProducto('${p.id}','precio',this.value)"></label>
         <label>Precio usuario<input type="number" min="0" step="0.01" placeholder="—" value="${p.precioUsuario ?? ""}" onchange="editarProducto('${p.id}','precioUsuario',this.value)"></label>
       </div>
-      <div class="prod-admin-util">${utilidad === null ? "Falta capturar tu costo" : "Tu utilidad: " + fmtMoney(utilidad)}</div>
+      <div class="prod-admin-pie">
+        <span class="prod-admin-util">${utilidad === null ? "Falta capturar tu costo" : "Tu utilidad: " + fmtMoney(utilidad)}</span>
+        <label class="prod-admin-prov">Proveedor
+          <input type="text" list="proveedores-lista" value="${escapeHtml(p.proveedor || "")}"
+            placeholder="—" onchange="editarProducto('${p.id}','proveedor',this.value)">
+        </label>
+      </div>
     </div>`;
   }).join("");
 }
@@ -1475,6 +1585,7 @@ function editarProducto(id, campo, valor) {
   if (campo === "precio") p.precio = parseFloat(valor) || 0;
   else if (campo === "costo") p.costo = normalizarCosto(valor);
   else if (campo === "precioUsuario") p.precioUsuario = normalizarCosto(valor);
+  else if (campo === "proveedor") p.proveedor = String(valor || "").trim();
   else p[campo] = valor;
   persistCatalogo();
   if (campo === "costo" || campo === "precio") renderProductosAjustes();
@@ -1493,13 +1604,15 @@ function agregarProducto(ev) {
   const precio = parseFloat(document.getElementById("np-precio").value) || 0;
   const costo = normalizarCosto(document.getElementById("np-costo")?.value);
   const precioUsuario = normalizarCosto(document.getElementById("np-usuario")?.value);
+  const proveedor = (document.getElementById("np-proveedor")?.value || "").trim();
   if (!nombre) return;
-  State.catalogo.push({ id: uid(), nombre, precio, costo, precioUsuario });
+  State.catalogo.push({ id: uid(), nombre, precio, costo, precioUsuario, proveedor });
   persistCatalogo();
   document.getElementById("np-nombre").value = "";
   document.getElementById("np-precio").value = "";
   if (document.getElementById("np-costo")) document.getElementById("np-costo").value = "";
   if (document.getElementById("np-usuario")) document.getElementById("np-usuario").value = "";
+  if (document.getElementById("np-proveedor")) document.getElementById("np-proveedor").value = "";
   renderProductosAjustes();
 }
 
@@ -1634,6 +1747,107 @@ function exportarParaBitacora() {
   a.click();
   URL.revokeObjectURL(url);
   toast(dias.length + " día(s) de ventas exportados.");
+}
+
+// ---------- Puente con el Cotizador de Compras ----------
+// El Cotizador (en la compu) es donde Arthur lleva los costos y precios al día.
+// Aquí se traen sin capturarlos dos veces. Es una ACTUALIZACIÓN, no un reemplazo:
+// lo que no venga en el archivo se queda intacto, y antes de guardar se enseña
+// exactamente qué va a cambiar para poder cancelar.
+function importarCotizador(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let datos;
+    try { datos = JSON.parse(reader.result); }
+    catch (e) { alert("Ese archivo no se pudo leer."); return; }
+    const entrada = (datos && Array.isArray(datos.productos)) ? datos.productos : null;
+    if (!entrada) {
+      alert('Ese archivo no es el del Cotizador.\n\nEn el Cotizador de Compras usa el botón "📲 Enviar precios a la app" y sube el archivo que descarga.');
+      return;
+    }
+
+    // Se empareja primero por código (CAB237, GAR063…) y si no, por nombre:
+    // así un producto renombrado en cualquiera de los dos lados se reconoce igual.
+    const porCodigo = new Map(), porNombre = new Map();
+    for (const p of State.catalogo) {
+      const c = codigoDeProducto(p.nombre);
+      if (c && !porCodigo.has(c)) porCodigo.set(c, p);
+      porNombre.set(soloAlfanumerico(normalizarTexto(p.nombre)), p);
+    }
+
+    const cambios = [], nuevos = [], aplicar = [];
+    for (const x of entrada) {
+      const nombre = String(x.nombre || "").trim();
+      if (!nombre) continue;
+      const codigo = codigoDeProducto(nombre);
+      const p = (codigo && porCodigo.get(codigo)) || porNombre.get(soloAlfanumerico(normalizarTexto(nombre)));
+      const costo = normalizarCosto(x.costo);
+      const precio = normalizarCosto(x.precio);
+      const usuario = normalizarCosto(x.precioUsuario);
+      const prov = String(x.proveedor || "").trim();
+
+      if (!p) {
+        // Producto nuevo: solo entra si trae precio de venta (sin precio no se puede vender).
+        if (precio === null) continue;
+        nuevos.push(nombre);
+        aplicar.push({ tipo: "nuevo", nombre, precio, costo, precioUsuario: usuario, proveedor: prov });
+        continue;
+      }
+      const campos = {};
+      if (costo !== null && costo !== normalizarCosto(p.costo)) {
+        campos.costo = costo;
+        cambios.push(p.nombre + ": costo " + fmtMoney(p.costo ?? 0) + " → " + fmtMoney(costo));
+      }
+      if (precio !== null && precio !== Number(p.precio)) {
+        campos.precio = precio;
+        cambios.push(p.nombre + ": precio cliente " + fmtMoney(p.precio) + " → " + fmtMoney(precio));
+      }
+      if (usuario !== null && usuario !== normalizarCosto(p.precioUsuario)) {
+        campos.precioUsuario = usuario;
+        cambios.push(p.nombre + ": precio usuario " + fmtMoney(p.precioUsuario ?? 0) + " → " + fmtMoney(usuario));
+      }
+      if (prov && prov !== (p.proveedor || "")) {
+        campos.proveedor = prov;
+        cambios.push(p.nombre + ": proveedor → " + prov);
+      }
+      if (Object.keys(campos).length) aplicar.push({ tipo: "actualiza", producto: p, campos });
+    }
+
+    if (aplicar.length === 0) {
+      toast("Tu catálogo ya está igual que el Cotizador. No hubo nada que cambiar.");
+      return;
+    }
+
+    const muestra = cambios.slice(0, 12).map(c => "• " + c).join("\n");
+    const resumen =
+      "Se van a actualizar " + cambios.length + " dato(s)" +
+      (nuevos.length ? " y agregar " + nuevos.length + " producto(s) nuevo(s)" : "") + ":\n\n" +
+      muestra +
+      (cambios.length > 12 ? "\n… y " + (cambios.length - 12) + " más" : "") +
+      (nuevos.length ? "\n\nNuevos:\n" + nuevos.map(n => "• " + n).join("\n") : "") +
+      "\n\nLo que no viene en el archivo se queda igual. ¿Aplicar?";
+    if (!confirm(resumen)) { toast("No se cambió nada."); return; }
+
+    for (const a of aplicar) {
+      if (a.tipo === "nuevo") {
+        State.catalogo.push({
+          id: uid(), nombre: a.nombre, precio: a.precio, costo: a.costo,
+          precioUsuario: a.precioUsuario, proveedor: a.proveedor,
+        });
+      } else {
+        Object.assign(a.producto, a.campos);
+      }
+    }
+    persistCatalogo();
+    renderAjustes();
+    renderNota();
+    renderVitrina();
+    toast("Precios actualizados desde el Cotizador.");
+  };
+  reader.readAsText(file);
 }
 
 function importarDatos(ev) {
@@ -1937,6 +2151,7 @@ function analizarResurtido(dias, semanasCubrir) {
       const sugerido = Math.max(1, Math.ceil(ritmoSemanal * semanasCubrir));
       lista.push({
         nombre: enCatalogo ? enCatalogo.nombre : a.nombre,
+        proveedor: (enCatalogo && enCatalogo.proveedor) || "",
         piezas: a.piezas, ritmoSemanal, sugerido,
         inversion: costo !== null ? costo * sugerido : null,
         utilidad: costo !== null ? (precio - costo) * sugerido : null,
@@ -1960,6 +2175,29 @@ function analizarResurtido(dias, semanasCubrir) {
   posiblesFaltantes.sort((a, b) => b.ritmoSemanal - a.ritmoSemanal);
 
   return { lista, posiblesFaltantes, acelerando, semanasCubrir, diasReales };
+}
+
+// Los grupos de la lista de compra que se están mostrando, para poder mandar
+// el pedido de un proveedor sin volver a calcular nada.
+let gruposResurtido = [];
+
+// Arma el pedido de UN proveedor y lo manda por WhatsApp (o lo copia si el
+// navegador no sabe compartir).
+function compartirPedido(indice) {
+  const grupo = gruposResurtido[indice];
+  if (!grupo) return;
+  const [proveedor, items] = grupo;
+  const piezas = items.reduce((a, x) => a + x.sugerido, 0);
+  const inversion = items.reduce((a, x) => a + (x.inversion ?? 0), 0);
+  const lineas = ["Pedido — " + proveedor, new Date().toLocaleDateString("es-MX"), ""];
+  items.forEach(p => lineas.push("• " + p.nombre + " — " + p.sugerido + " pz"));
+  lineas.push("", "Total: " + piezas + " piezas · " + fmtMoney(inversion));
+  const texto = lineas.join("\n");
+  if (navigator.share) {
+    navigator.share({ text: texto, title: "Pedido " + proveedor }).catch(() => {});
+  } else {
+    copiarTexto(texto);
+  }
 }
 
 function renderResurtido() {
@@ -2017,16 +2255,39 @@ function renderResurtido() {
         <div><span>Invertirías</span><b>${fmtMoney(totInv)}</b></div>
         <div><span>Te dejaría</span><b class="rot-verde">${fmtMoney(totUtil)}</b></div>
       </div>`;
-    html += r.lista.map(p => `
-      <div class="card rot-item">
-        <div class="rot-item-top">
-          <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
-          <span class="rot-comprar">${p.sugerido} pz</span>
-        </div>
-        <div class="rot-sub">Vendes ~${p.ritmoSemanal.toFixed(1)} pz/semana${
-          p.inversion !== null ? ` · inviertes ${fmtMoney(p.inversion)} · te deja ${fmtMoney(p.utilidad)}` : " · falta capturar su costo"
-        }</div>
-      </div>`).join("");
+    // Agrupado por proveedor: el pedido sale ya separado para cada uno, en vez
+    // de una lista revuelta que hay que ir partiendo a mano.
+    const porProveedor = new Map();
+    for (const it of r.lista) {
+      const prov = it.proveedor || "Sin proveedor asignado";
+      if (!porProveedor.has(prov)) porProveedor.set(prov, []);
+      porProveedor.get(prov).push(it);
+    }
+    const inversionDe = (items) => items.reduce((a, x) => a + (x.inversion ?? 0), 0);
+    gruposResurtido = Array.from(porProveedor.entries())
+      .sort((a, b) => inversionDe(b[1]) - inversionDe(a[1]));
+
+    gruposResurtido.forEach(([prov, items], i) => {
+      const piezas = items.reduce((a, x) => a + x.sugerido, 0);
+      html += `
+        <div class="rot-prov">
+          <div class="rot-prov-top">
+            <span class="rot-prov-nombre">🏭 ${escapeHtml(prov)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="compartirPedido(${i})">📤 Pedido</button>
+          </div>
+          <div class="rot-prov-sub">${piezas} pz · inviertes ${fmtMoney(inversionDe(items))}</div>
+        </div>`;
+      html += items.map(p => `
+        <div class="card rot-item">
+          <div class="rot-item-top">
+            <span class="rot-nombre">${escapeHtml(p.nombre)}</span>
+            <span class="rot-comprar">${p.sugerido} pz</span>
+          </div>
+          <div class="rot-sub">Vendes ~${p.ritmoSemanal.toFixed(1)} pz/semana${
+            p.inversion !== null ? ` · inviertes ${fmtMoney(p.inversion)} · te deja ${fmtMoney(p.utilidad)}` : " · falta capturar su costo"
+          }</div>
+        </div>`).join("");
+    });
   }
 
   cont.innerHTML = html;
@@ -2632,6 +2893,8 @@ async function initApp() {
   const buscarExistencias = document.getElementById("existencias-buscar");
   if (buscarExistencias) buscarExistencias.addEventListener("input", () => renderExistencias());
   document.getElementById("input-importar").addEventListener("change", importarDatos);
+  const inputCot = document.getElementById("input-cotizador");
+  if (inputCot) inputCot.addEventListener("change", importarCotizador);
   document.getElementById("pin-toggle").addEventListener("change", togglePin);
 
   if (!Printer.bluetoothSupported()) {

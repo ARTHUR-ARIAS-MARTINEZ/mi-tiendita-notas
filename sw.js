@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v27";
+const CACHE = "mte-notas-v29";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -119,6 +119,10 @@ self.addEventListener("fetch", (ev) => {
   let url;
   try { url = new URL(req.url); } catch (e) { return; }
   if (url.origin !== location.origin) return; // dejar pasar dominios externos
+
+  // El Cotizador vive en su propia carpeta y trae su propio service worker.
+  // Sin esto, cualquier intento de abrirlo devolvería la app de Notas.
+  if (url.pathname.includes("/cotizador/")) return;
 
   // ABRIR LA APP (navegación): SIEMPRE se devuelve el index.html guardado,
   // sin importar la URL exacta ni si hay internet. Esta es la clave para que

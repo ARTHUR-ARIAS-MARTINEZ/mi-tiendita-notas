@@ -207,14 +207,44 @@
   </div>
 
   <div class="card">
+    <h3>🧮 Cotizador de Compras</h3>
+    <div class="form-hint">
+      Costos, precios, utilidad de cada producto y el pedido por proveedor.
+      Usa <b>el mismo catálogo que esta app</b>: lo que cambies allá se ve aquí y al revés.
+      Ábrelo e <b>instálalo</b> para tenerlo como otra app en tu celular.
+    </div>
+    <div style="margin-top:6px">
+      <a class="btn btn-accent btn-sm" href="cotizador/index.html" target="_blank" rel="noopener">🧮 Abrir el Cotizador</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔗 Traer precios del Cotizador (de otro aparato)</h3>
+    <div class="form-hint">
+      Solo hace falta para pasar precios <b>de un aparato a otro</b> (de la compu al celular).
+      En el Cotizador presiona <b>“📲 Enviar precios a la app”</b> y sube aquí el archivo.
+      Actualiza <b>costos, precios y proveedores</b> sin borrar nada: antes de guardar te
+      muestra exactamente qué va a cambiar, y lo que no venga en el archivo se queda igual.
+    </div>
+    <div style="margin-top:6px">
+      <label class="btn btn-accent btn-sm" style="cursor:pointer">
+        📥 Traer precios del Cotizador
+        <input type="file" id="input-cotizador" accept="application/json" style="display:none">
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
     <button type="button" class="collapse-header" id="btn-toggle-catalogo" aria-expanded="false">
       <span>📦 Catálogo de productos</span>
       <span class="collapse-caret" id="catalogo-caret">▼</span>
     </button>
     <div id="catalogo-panel" class="hidden" style="margin-top:12px">
       <div id="productos-admin-list"></div>
+      <datalist id="proveedores-lista"></datalist>
       <form id="form-nuevo-producto" class="prod-nuevo-form">
         <input type="text" id="np-nombre" placeholder="Producto nuevo">
+        <input type="text" id="np-proveedor" list="proveedores-lista" placeholder="Proveedor (Chinos, GDL, G Tide…)">
         <div class="prod-nuevo-precios">
           <label>Costo mío<input type="number" id="np-costo" placeholder="—" min="0" step="0.01"></label>
           <label>Precio cliente<input type="number" id="np-precio" placeholder="—" min="0" step="0.01"></label>

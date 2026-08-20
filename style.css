@@ -123,7 +123,15 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 .prod-admin-linea2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
 .prod-admin-linea2 label,.prod-nuevo-precios label{display:flex;flex-direction:column;gap:2px;font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.02em}
 .prod-admin-linea2 input,.prod-nuevo-precios input{margin-bottom:0;padding:7px 8px;font-size:.8rem}
-.prod-admin-util{font-size:.68rem;color:var(--green);margin-top:6px}
+.prod-admin-util{font-size:.68rem;color:var(--green)}
+.prod-admin-pie{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:7px}
+.prod-admin-prov{display:flex;flex-direction:column;gap:2px;font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.02em;flex:0 0 46%}
+.prod-admin-prov input{margin-bottom:0;padding:6px 8px;font-size:.75rem}
+/* Lista de compra separada por proveedor */
+.rot-prov{margin:16px 0 8px}
+.rot-prov-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rot-prov-nombre{font-family:var(--font-h);font-weight:700;font-size:.85rem}
+.rot-prov-sub{font-size:.68rem;color:var(--muted);margin-top:2px}
 
 /* Encabezado de sección colapsable (ej. Catálogo de productos) */
 .collapse-header{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:none;border:none;color:var(--text);font-family:var(--font-h,inherit);font-size:.98rem;font-weight:600;cursor:pointer;padding:0}
