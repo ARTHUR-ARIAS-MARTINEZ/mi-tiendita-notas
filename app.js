@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v30 · 20 ago 2026";
+const APP_VERSION = "v31 · 20 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
