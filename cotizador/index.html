@@ -270,6 +270,22 @@
   </div>
 </div></div>
 
+<!-- MODAL instalar -->
+<div class="ov hide" id="ovI"><div class="modal">
+  <h3>📲 Instalar el Cotizador en tu celular</h3>
+  <div id="iTexto"></div>
+  <div class="fld" style="margin-top:12px">
+    <label>Dirección del Cotizador</label>
+    <input id="iUrl" readonly onclick="this.select()">
+  </div>
+  <div class="macts">
+    <button class="btn" onclick="closeI()">Cerrar</button>
+    <div class="sp"></div>
+    <button class="btn" onclick="copiarUrl()">📋 Copiar dirección</button>
+    <button class="btn p hide" id="iBtn" onclick="hacerInstalar()">⬇️ Instalar</button>
+  </div>
+</div></div>
+
 <!-- MODAL enviar pedido -->
 <div class="ov hide" id="ovP"><div class="modal">
   <h3>Enviar pedido al proveedor</h3>
@@ -640,18 +656,33 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();avisoInstal
 window.addEventListener("appinstalled",()=>{avisoInstalar=null;bInstalar.classList.add("hide");
   alert("¡Listo! Ya está instalada. Ábrela desde su ícono de calculadora.");});
 function instalarApp(){
-  if(avisoInstalar){
-    avisoInstalar.prompt();
-    Promise.resolve(avisoInstalar.userChoice).catch(()=>{}).then(()=>{
-      avisoInstalar=null;revisarInstalar();});
-    return;
-  }
-  alert("Para instalarla en tu celular:\n\n"+
-        "1. Toca el menú ⋮ de Chrome (arriba a la derecha)\n"+
-        "2. Elige “Instalar aplicación” o “Agregar a pantalla de inicio”\n"+
-        "3. Confirma\n\n"+
-        "Queda con su ícono de calculadora, aparte de Notas de Venta.");
+  iUrl.value=location.href.split("#")[0].split("?")[0];
+  const puede=!!avisoInstalar;
+  // Si se abrió desde un enlace (por ejemplo desde Ajustes de Notas de Venta),
+  // Chrome lo trata como una ventana de ESA app y no ofrece instalarlo.
+  const dentroDeOtraApp=!!document.referrer||!!window.opener;
+  iBtn.classList.toggle("hide",!puede);
+  iTexto.innerHTML = puede
+    ? '<div class="note" style="text-align:left;font-size:13px">Presiona <b>⬇️ Instalar</b> y confirma. Queda con su ícono de calculadora, aparte de Notas de Venta, y funciona sin internet.</div>'
+    : (dentroDeOtraApp
+      ? '<div class="note" style="text-align:left;font-size:13px"><b>Lo abriste desde adentro de la app de Notas de Venta.</b> Así Chrome no deja instalarlo, porque cree que es la misma app.<br><br><b>Haz esto:</b><br>1. Presiona <b>📋 Copiar dirección</b> aquí abajo.<br>2. Sal y abre <b>Chrome</b> (el navegador, no la app).<br>3. Pega la dirección en la barra de arriba y entra.<br>4. Ahí sí: menú <b>⋮</b> → <b>Instalar aplicación</b>.</div>'
+      : '<div class="note" style="text-align:left;font-size:13px">Abre el menú <b>⋮</b> de Chrome (arriba a la derecha) y elige <b>“Instalar aplicación”</b> o <b>“Agregar a pantalla de inicio”</b>.<br><br>Si no te aparece la opción, usa el Cotizador un momento (toca algo, baja la lista) y vuelve a abrir el menú.</div>');
+  ovI.classList.remove("hide");
 }
+function closeI(){ovI.classList.add("hide");}
+function hacerInstalar(){
+  if(!avisoInstalar)return;
+  avisoInstalar.prompt();
+  Promise.resolve(avisoInstalar.userChoice).catch(()=>{}).then(()=>{
+    avisoInstalar=null;revisarInstalar();closeI();});
+}
+function copiarUrl(){
+  const t=iUrl.value;
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(t).then(()=>flash("Copiado"),()=>{iUrl.select();document.execCommand("copy");});
+  else {iUrl.select();try{document.execCommand("copy");flash("Copiado");}catch(e){}}
+}
+
 revisarInstalar();
 if("serviceWorker" in navigator){
   let recargado=false;
@@ -671,7 +702,7 @@ load();
 tRed.value=redT;tGreen.value=greenT;pintarLeyenda();
 sub.textContent=CAT.length+" productos en el catálogo";
 fillProvSelects();renderCot();renderPl();
-[ov,ovA,ovP].forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hide');}));
+[ov,ovA,ovP,ovI].forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hide');}));
 </script>
 </body>
 </html>
