@@ -64,6 +64,7 @@ const FOTOS_POR_CODIGO = {
 // Para los productos cuyo nombre NO trae código. Se toma la primera regla
 // cuyas palabras aparezcan TODAS en el nombre del producto.
 const FOTOS_POR_PALABRAS = [
+  { palabras: ["reloj"],              archivo: "tb6323.webp" },  // Reloj Inteligente T-500
   { palabras: ["gtide"],              archivo: "gtide.webp" },   // Audífonos Clip On (G-TIDE)
   { palabras: ["earpods"],            archivo: "earpods.webp" },
   { palabras: ["hdmi"],               archivo: "hdmi3m.webp" },

@@ -29,7 +29,7 @@ const CATALOGO_DEFAULT = [
   // ----- GDL (35) -----
   { nombre: "Cable V8 CAB236", precio: 50, costo: 9.5, precioUsuario: 65, proveedor: "GDL" },
   { nombre: "Cargador de Carga Media 2 Amp GAR063", precio: 35, costo: 15, precioUsuario: 50, proveedor: "GDL" },
-  { nombre: "Reloj Inteligente TB6323", precio: 210, costo: 120, precioUsuario: 260, proveedor: "GDL" },
+  { nombre: "Reloj Inteligente T-500", precio: 210, costo: 120, precioUsuario: 260, proveedor: "GDL" },
   { nombre: "Audífonos Inalámbricos TWS 1 Hora AUT205", precio: 220, costo: 130.5, precioUsuario: 270, proveedor: "GDL" },
   { nombre: "Audífonos Clip 1 Hora AUT210", precio: 250, costo: 155, precioUsuario: 300, proveedor: "GDL" },
   { nombre: "Power Bank con Cables 5000 mAh GAR261", precio: 190, costo: 104, precioUsuario: 245, proveedor: "GDL" },

@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v31 · 20 ago 2026";
+const APP_VERSION = "v32 · 20 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -562,6 +562,24 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       cambió = true;
     }
 
+    if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migración: el reloj ya no se llama TB6323, ahora es el T-500 (2026-08-20).
+// Solo renombra si sigue con el nombre viejo; si tú se lo cambiaste, se respeta.
+(function renombrarReloj() {
+  const FLAG = "mte_migr_reloj_t500";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambió = false;
+    for (const p of State.catalogo) {
+      if (codigoDeProducto(p.nombre) === "TB6323") {
+        p.nombre = "Reloj Inteligente T-500";
+        cambió = true;
+      }
+    }
     if (cambió) saveJSON(STORE_KEYS.catalogo, State.catalogo);
   }
   localStorage.setItem(FLAG, "1");
@@ -1369,6 +1387,7 @@ function renderAjustes() {
   document.getElementById("aj-slogan").value = State.negocio.slogan;
   renderProductosAjustes();
   renderExistencias();
+  revisarOffline();
   document.getElementById("printer-name").textContent = Printer.isConnected()
     ? "Conectada"
     : (Printer.getLastDeviceName() ? "Última usada: " + Printer.getLastDeviceName() + " (desconectada)" : "Sin conectar");
@@ -2846,6 +2865,93 @@ async function instalarApp() {
   actualizarTarjetaInstalar();
 }
 
+// ---------- Uso sin internet ----------
+// La app se guarda entera en el celular. Aquí se comprueba si de verdad
+// quedó guardada, y hay un botón para forzarlo si algo faltó.
+
+const ARCHIVOS_ESPERADOS = 41; // 9 esenciales + 6 íconos + 8 fuentes + 33 fotos... se compara con lo real
+
+async function revisarOffline() {
+  const caja = document.getElementById("estado-offline");
+  if (!caja) return;
+  caja.classList.remove("listo", "falta");
+  if (!("serviceWorker" in navigator)) {
+    caja.textContent = "Este navegador no puede guardar la app. Ábrela con Chrome en Android.";
+    caja.classList.add("falta");
+    return;
+  }
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    const nombres = await caches.keys();
+    let guardados = 0;
+    for (const n of nombres) guardados += (await (await caches.open(n)).keys()).length;
+    if (regs.length === 0 || guardados === 0) {
+      caja.textContent = "⚠️ Todavía NO está guardada. Con internet, presiona el botón de abajo y espera a que diga listo.";
+      caja.classList.add("falta");
+    } else if (guardados < 20) {
+      caja.textContent = "⚠️ Guardada a medias (" + guardados + " archivos). Presiona el botón de abajo con internet para completarla.";
+      caja.classList.add("falta");
+    } else {
+      caja.textContent = "✅ Lista para usarse sin internet. " + guardados +
+        " archivos guardados en este celular" + (navigator.onLine ? "" : " · ahorita estás sin señal y funcionó") + ".";
+      caja.classList.add("listo");
+    }
+  } catch (e) {
+    caja.textContent = "No se pudo comprobar: " + (e.message || e);
+    caja.classList.add("falta");
+  }
+}
+
+async function guardarTodoOffline() {
+  const caja = document.getElementById("estado-offline");
+  const btn = document.getElementById("btn-guardar-offline");
+  if (!("serviceWorker" in navigator)) { revisarOffline(); return; }
+  if (!navigator.onLine) {
+    caja.textContent = "⚠️ Ahorita no tienes internet. Conéctate un momento y vuelve a presionar.";
+    caja.classList.remove("listo"); caja.classList.add("falta");
+    return;
+  }
+  btn.disabled = true;
+  caja.classList.remove("listo", "falta");
+  caja.textContent = "Guardando… no cierres la app.";
+  try {
+    // Si aún no hay service worker activo, se registra y se espera.
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) reg = await navigator.serviceWorker.register("sw.js", { updateViaCache: "none" });
+    await navigator.serviceWorker.ready;
+    const destino = navigator.serviceWorker.controller || (await navigator.serviceWorker.ready).active;
+    if (!destino) throw new Error("no se pudo preparar el guardado");
+
+    const resultado = await new Promise((resolve, reject) => {
+      const alRecibir = (ev) => {
+        if (!ev.data || ev.data.type !== "GUARDADO") return;
+        navigator.serviceWorker.removeEventListener("message", alRecibir);
+        resolve(ev.data);
+      };
+      navigator.serviceWorker.addEventListener("message", alRecibir);
+      destino.postMessage({ type: "GUARDAR_TODO" });
+      setTimeout(() => {
+        navigator.serviceWorker.removeEventListener("message", alRecibir);
+        reject(new Error("tardó demasiado"));
+      }, 120000);
+    });
+
+    if (resultado.cuantosFallaron) {
+      caja.textContent = "⚠️ Se guardaron " + resultado.guardados + " de " + resultado.total +
+        ". Faltaron " + resultado.cuantosFallaron + " (mala señal). Vuelve a presionar con mejor internet.";
+      caja.classList.add("falta");
+    } else {
+      caja.textContent = "✅ Listo: " + resultado.guardados + " archivos guardados. " +
+        "Ya puedes usar la app sin internet, aunque nunca te vuelvas a conectar.";
+      caja.classList.add("listo");
+    }
+  } catch (e) {
+    caja.textContent = "No se pudo guardar: " + (e.message || e) + ". Inténtalo de nuevo con internet.";
+    caja.classList.add("falta");
+  }
+  btn.disabled = false;
+}
+
 // ---------- Arranque ----------
 
 async function initApp() {
@@ -2886,6 +2992,8 @@ async function initApp() {
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
   const btnCatalogo = document.getElementById("btn-toggle-catalogo");
   if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
+  const btnOffline = document.getElementById("btn-guardar-offline");
+  if (btnOffline) btnOffline.addEventListener("click", guardarTodoOffline);
   const btnExistencias = document.getElementById("btn-toggle-existencias");
   if (btnExistencias) btnExistencias.addEventListener("click", toggleExistencias);
   const btnStockTodos = document.getElementById("btn-stock-todos");

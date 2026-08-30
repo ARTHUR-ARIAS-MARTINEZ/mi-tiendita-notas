@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v31";
+const CACHE = "mte-notas-v32";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -110,6 +110,31 @@ self.addEventListener("activate", (ev) => {
 // Permite que la página le pida al service worker nuevo tomar control ya.
 self.addEventListener("message", (ev) => {
   if (ev.data && ev.data.type === "SKIP_WAITING") self.skipWaiting();
+
+  // La app pide guardar TODO de una vez, para poder usarse sin internet.
+  // Se van guardando uno por uno y se reporta cuántos quedaron y cuáles no.
+  if (ev.data && ev.data.type === "GUARDAR_TODO") {
+    ev.waitUntil((async () => {
+      const cache = await caches.open(CACHE);
+      const todos = CORE.concat(EXTRAS);
+      let guardados = 0;
+      const fallaron = [];
+      for (const ruta of todos) {
+        try {
+          const resp = await fetch(ruta, { cache: "reload" });
+          if (resp && resp.ok) { await cache.put(ruta, resp); guardados++; }
+          else fallaron.push(ruta);
+        } catch (e) { fallaron.push(ruta); }
+      }
+      const enCaja = (await cache.keys()).length;
+      const avisar = (c) => c.postMessage({
+        type: "GUARDADO", guardados, total: todos.length, enCaja,
+        fallaron: fallaron.slice(0, 4), cuantosFallaron: fallaron.length,
+      });
+      if (ev.source) avisar(ev.source);
+      else (await self.clients.matchAll()).forEach(avisar);
+    })());
+  }
 });
 
 self.addEventListener("fetch", (ev) => {

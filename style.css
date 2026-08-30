@@ -123,6 +123,10 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 .prod-admin-linea2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
 .prod-admin-linea2 label,.prod-nuevo-precios label{display:flex;flex-direction:column;gap:2px;font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.02em}
 .prod-admin-linea2 input,.prod-nuevo-precios input{margin-bottom:0;padding:7px 8px;font-size:.8rem}
+.estado-offline{font-size:.78rem;line-height:1.45;padding:9px 11px;border-radius:10px;
+  background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.estado-offline.listo{border-color:var(--border-accent);color:var(--green)}
+.estado-offline.falta{border-color:rgba(255,0,132,.35);color:var(--red)}
 .prod-admin-util{font-size:.68rem;color:var(--green)}
 .prod-admin-pie{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin-top:7px}
 .prod-admin-prov{display:flex;flex-direction:column;gap:2px;font-size:.6rem;text-transform:uppercase;color:var(--muted);letter-spacing:.02em;flex:0 0 46%}
