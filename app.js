@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v33 · 20 ago 2026 · Colores";
+const APP_VERSION = "v34 · 20 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -614,6 +614,45 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       const viejas = Number(State.stock[p.id]);
       if (Number.isFinite(viejas) && viejas > 0) {
         State.stock[p.id + "|" + cols[0]] = (Number(State.stock[p.id + "|" + cols[0]]) || 0) + viejas;
+        delete State.stock[p.id];
+        stockCambio = true;
+      }
+    }
+    if (cambio) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    if (stockCambio) saveJSON(STORE_KEYS.stock, State.stock);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Migracion: colores nuevos que pidio Arthur (2026-08-20b).
+//   L22 -> negro, blanco, lila y rosa.
+//   Cargadores GAR152, GAR164 y GAR171 -> negro y blanco.
+// ADITIVA Y CUIDADOSA: si tu ya le pusiste colores a un producto, no se toca.
+// Y las piezas que YA tenias capturadas sin color NO se pierden: se pasan
+// completas al primer color, para que las repartas a mano desde Ajustes.
+(function coloresNuevos2026_08b() {
+  const FLAG = "mte_migr_colores_2026_08b";
+  if (localStorage.getItem(FLAG)) return;
+  const NUEVOS = {
+    "L22": ["Negro", "Blanco", "Lila", "Rosa"],
+    "GAR152": ["Negro", "Blanco"],
+    "GAR164": ["Negro", "Blanco"],
+    "GAR171": ["Negro", "Blanco"],
+  };
+  if (Array.isArray(State.catalogo)) {
+    let cambio = false, stockCambio = false;
+    for (const p of State.catalogo) {
+      if (Array.isArray(p.colores) && p.colores.length) continue; // ya tiene: se respeta
+      const nombre = String(p.nombre || "").toUpperCase();
+      const clave = Object.keys(NUEVOS).find(k => nombre.includes(k));
+      if (!clave) continue;
+      p.colores = NUEVOS[clave].slice();
+      cambio = true;
+      // Rescate de las piezas que ya llevaba contadas sin color.
+      const viejas = Number(State.stock[p.id]);
+      if (Number.isFinite(viejas) && viejas > 0) {
+        const primero = p.id + "|" + p.colores[0];
+        State.stock[primero] = (Number(State.stock[primero]) || 0) + viejas;
         delete State.stock[p.id];
         stockCambio = true;
       }
@@ -1779,13 +1818,22 @@ function agregarProducto(ev) {
   const precioUsuario = normalizarCosto(document.getElementById("np-usuario")?.value);
   const proveedor = (document.getElementById("np-proveedor")?.value || "").trim();
   if (!nombre) return;
-  State.catalogo.push({ id: uid(), nombre, precio, costo, precioUsuario, proveedor });
+  const nuevo = { id: uid(), nombre, precio, costo, precioUsuario, proveedor, colores: [] };
+  State.catalogo.push(nuevo);
   persistCatalogo();
+  // Las piezas que llevas: sin esto el producto no aparece en la Vitrina,
+  // porque ahi solo se exhibe lo que de verdad traes en la ruta.
+  const piezas = Math.max(0, Math.floor(Number(document.getElementById("np-piezas")?.value) || 0));
+  if (piezas > 0) fijarStock(nuevo.id, piezas);
+  toast(piezas > 0
+    ? "Producto agregado con " + piezas + " pieza(s). Ya sale en la Vitrina."
+    : "Producto agregado. Ponle piezas para que salga en la Vitrina.");
   document.getElementById("np-nombre").value = "";
   document.getElementById("np-precio").value = "";
   if (document.getElementById("np-costo")) document.getElementById("np-costo").value = "";
   if (document.getElementById("np-usuario")) document.getElementById("np-usuario").value = "";
   if (document.getElementById("np-proveedor")) document.getElementById("np-proveedor").value = "";
+  if (document.getElementById("np-piezas")) document.getElementById("np-piezas").value = "";
   renderProductosAjustes();
 }
 

@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v33";
+const CACHE = "mte-notas-v34";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -95,10 +95,6 @@ const EXTRAS = [
   "productos/boc243-rojo.webp",
   "productos/boc244-negro.webp",
   "productos/boc244-rojo.webp",
-  "productos/ez165-azul.webp",
-  "productos/ez165-negro.webp",
-  "productos/ez165-rojo.webp",
-  "productos/ez165-verde.webp",
   "productos/gtide-azul.webp",
   "productos/gtide-blanco.webp",
   "productos/gtide-morado.webp",

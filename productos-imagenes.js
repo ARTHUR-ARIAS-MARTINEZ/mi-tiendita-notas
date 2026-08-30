@@ -76,6 +76,8 @@ const FOTOS_POR_PALABRAS = [
 // Foto de cada COLOR. La llave es el código del producto (o una palabra de
 // su nombre, para los que no traen código). Si un color no tiene su foto,
 // se usa la foto normal del producto.
+// OJO: el Buytiti EZ-165 NO lleva foto por color a proposito. Su foto de
+// siempre muestra los cuatro colores juntos y asi la quiere Arthur.
 const FOTOS_POR_COLOR = {
   "BOC060": {
     "Negro": "boc060-negro.webp",
@@ -105,12 +107,6 @@ const FOTOS_POR_COLOR = {
   "AUT205": {
     "Negro": "aut205-negro.webp",
     "Blanco": "aut205-blanco.webp"
-  },
-  "EZ-165": {
-    "Negro": "ez165-negro.webp",
-    "Rojo": "ez165-rojo.webp",
-    "Verde": "ez165-verde.webp",
-    "Azul": "ez165-azul.webp"
   },
   "gtide": {
     "Negro": "gtide-negro.webp",
