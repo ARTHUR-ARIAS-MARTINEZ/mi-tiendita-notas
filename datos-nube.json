@@ -1,7 +1,7 @@
 {
  "version": 1,
- "actualizado": "2026-08-30T21:22:27.988Z",
- "quien": "app de Notas de Venta",
+ "actualizado": "2026-08-30T21:22:55.000Z",
+ "quien": "catalogo oficial desde la computadora",
  "productos": [
   {
    "nombre": "Cable Tipo C CAB237",
@@ -9,7 +9,7 @@
    "costo": 8.8,
    "precioUsuario": 50,
    "proveedor": "Chinos",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable iPhone CAB238",
@@ -17,7 +17,7 @@
    "costo": 8.8,
    "precioUsuario": 50,
    "proveedor": "Chinos",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Audífono Buytiti EZ-165",
@@ -25,7 +25,7 @@
    "costo": 7,
    "precioUsuario": 50,
    "proveedor": "Buytiti",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo",
@@ -40,7 +40,7 @@
    "costo": 9.5,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador de Carga Media 2 Amp GAR063",
@@ -48,7 +48,7 @@
    "costo": 15,
    "precioUsuario": 50,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Reloj Inteligente T-500",
@@ -56,7 +56,7 @@
    "costo": 120,
    "precioUsuario": 260,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Naranja",
@@ -70,7 +70,7 @@
    "costo": 130.5,
    "precioUsuario": 270,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco"
@@ -82,7 +82,7 @@
    "costo": 155,
    "precioUsuario": 300,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Power Bank con Cables 5000 mAh GAR261",
@@ -90,7 +90,7 @@
    "costo": 104,
    "precioUsuario": 245,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Power Bank con Cables 10,000 mAh GAR148",
@@ -98,7 +98,7 @@
    "costo": 134,
    "precioUsuario": 270,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable T.C Carga Rápida 3 Amp CAB251",
@@ -106,7 +106,7 @@
    "costo": 11,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Carro Doble USB 2 Amp GAR128",
@@ -114,7 +114,7 @@
    "costo": 16,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Soporte Magnético para Celular PJ097",
@@ -122,7 +122,7 @@
    "costo": 16,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable T.C - iPhone CAB258",
@@ -130,7 +130,7 @@
    "costo": 18.5,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable T.C - T.C CAB252",
@@ -138,7 +138,7 @@
    "costo": 13.5,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable Plug 3.5 VGA / Audio / Video 1.5 Mts",
@@ -146,7 +146,7 @@
    "costo": 12,
    "precioUsuario": 45,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cable Pulpo CAB259",
@@ -154,7 +154,7 @@
    "costo": 27.5,
    "precioUsuario": 120,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Doble T.C y USB GAR161",
@@ -162,7 +162,7 @@
    "costo": 40.5,
    "precioUsuario": 100,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Mouse Inalámbrico RAT001",
@@ -170,7 +170,7 @@
    "costo": 58.5,
    "precioUsuario": 135,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Audífonos Inalámbricos de Colores INPODS12",
@@ -178,7 +178,7 @@
    "costo": 45,
    "precioUsuario": 150,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco",
@@ -196,23 +196,23 @@
    "costo": 24,
    "precioUsuario": 65,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Tira Led de 5 Mts",
-   "precio": 149,
-   "costo": 69,
-   "precioUsuario": 160,
+   "precio": 125.0,
+   "costo": 69.0,
+   "precioUsuario": 160.0,
    "proveedor": "GDL",
-   "mod": 1788124947978
+   "mod": 1788124975343
   },
   {
    "nombre": "Bocina BOC060",
-   "precio": 299,
-   "costo": 165,
-   "precioUsuario": 310,
+   "precio": 255.0,
+   "costo": 165.0,
+   "precioUsuario": 310.0,
    "proveedor": "GDL",
-   "mod": 1788124887285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo"
@@ -224,7 +224,7 @@
    "costo": 113.5,
    "precioUsuario": 275,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo"
@@ -236,7 +236,7 @@
    "costo": 232,
    "precioUsuario": 510,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Bocina BOC242",
@@ -244,7 +244,7 @@
    "costo": 171,
    "precioUsuario": 390,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo"
@@ -256,7 +256,7 @@
    "costo": 135.5,
    "precioUsuario": 260,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo"
@@ -268,7 +268,7 @@
    "costo": 140.5,
    "precioUsuario": 340,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Rojo"
@@ -280,7 +280,7 @@
    "costo": 335.5,
    "precioUsuario": 780,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Audífonos Earpods (para iPhone)",
@@ -288,7 +288,7 @@
    "costo": 39.5,
    "precioUsuario": 90,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Audífonos (para T.C.) AUT125",
@@ -296,7 +296,7 @@
    "costo": 37,
    "precioUsuario": 90,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Con Cable T.C. a T.C. GAR153",
@@ -304,7 +304,7 @@
    "costo": 43,
    "precioUsuario": 100,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Con Cable T.C. a iPhone GAR154",
@@ -312,7 +312,7 @@
    "costo": 46,
    "precioUsuario": 100,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Carga Rápida 20W GAR152",
@@ -320,7 +320,7 @@
    "costo": 32.5,
    "precioUsuario": 120,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco"
@@ -332,7 +332,7 @@
    "costo": 55.5,
    "precioUsuario": 160,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco"
@@ -344,7 +344,7 @@
    "costo": 66,
    "precioUsuario": 180,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Carga Rápida 45W GAR171",
@@ -352,7 +352,7 @@
    "costo": 101.5,
    "precioUsuario": 250,
    "proveedor": "GDL",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco"
@@ -364,7 +364,7 @@
    "costo": 32,
    "precioUsuario": 85,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Soporte Universal Con Base Giratoria (Base Metal)",
@@ -372,7 +372,7 @@
    "costo": 21.5,
    "precioUsuario": 60,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Cargador Inalámbrico 1 Hora GAR151",
@@ -380,7 +380,7 @@
    "costo": 85.5,
    "precioUsuario": 220,
    "proveedor": "GDL",
-   "mod": 1788124886285
+   "mod": 1788124975343
   },
   {
    "nombre": "Audífonos Clip On (G-TIDE)",
@@ -388,7 +388,7 @@
    "costo": 118,
    "precioUsuario": 300,
    "proveedor": "G Tide",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco",
@@ -403,7 +403,7 @@
    "costo": 122,
    "precioUsuario": 260,
    "proveedor": "G Tide",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco",
@@ -417,7 +417,7 @@
    "costo": 99,
    "precioUsuario": 260,
    "proveedor": "G Tide",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco",
@@ -430,7 +430,7 @@
    "costo": 89,
    "precioUsuario": 190,
    "proveedor": "G Tide",
-   "mod": 1788124886285,
+   "mod": 1788124975343,
    "colores": [
     "Negro",
     "Blanco",
@@ -439,14 +439,5 @@
    ]
   }
  ],
- "existencias": {
-  "BOC060|Rojo": {
-   "piezas": 9,
-   "mod": 1788124887285
-  },
-  "tiraled": {
-   "piezas": 77,
-   "mod": 1788124947978
-  }
- }
+ "existencias": {}
 }
