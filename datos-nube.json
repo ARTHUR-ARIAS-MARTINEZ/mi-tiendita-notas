@@ -8,14 +8,16 @@
    "precio": 35.0,
    "costo": 8.8,
    "precioUsuario": 50.0,
-   "proveedor": "Chinos"
+   "proveedor": "Chinos",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable iPhone CAB238",
    "precio": 35.0,
    "costo": 8.8,
    "precioUsuario": 50.0,
-   "proveedor": "Chinos"
+   "proveedor": "Chinos",
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífono Buytiti EZ-165",
@@ -29,21 +31,24 @@
     "Blanco",
     "Verde",
     "Azul"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable V8 CAB236",
    "precio": 50.0,
    "costo": 9.5,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador de Carga Media 2 Amp GAR063",
    "precio": 35.0,
    "costo": 15.0,
    "precioUsuario": 50.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Reloj Inteligente T-500",
@@ -56,7 +61,8 @@
     "Naranja",
     "Blanco",
     "Azul"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Inalámbricos TWS 1 Hora AUT205",
@@ -67,91 +73,104 @@
    "colores": [
     "Negro",
     "Blanco"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Clip 1 Hora AUT210",
    "precio": 250.0,
    "costo": 155.0,
    "precioUsuario": 300.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Power Bank con Cables 5000 mAh GAR261",
    "precio": 190.0,
    "costo": 104.0,
    "precioUsuario": 245.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Power Bank con Cables 10,000 mAh GAR148",
    "precio": 220.0,
    "costo": 134.0,
    "precioUsuario": 270.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable T.C Carga Rápida 3 Amp CAB251",
    "precio": 50.0,
    "costo": 11.0,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Carro Doble USB 2 Amp GAR128",
    "precio": 50.0,
    "costo": 16.0,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Soporte Magnético para Celular PJ097",
    "precio": 50.0,
    "costo": 16.0,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable T.C - iPhone CAB258",
    "precio": 50.0,
    "costo": 18.5,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable T.C - T.C CAB252",
    "precio": 50.0,
    "costo": 13.5,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable Plug 3.5 VGA / Audio / Video 1.5 Mts",
    "precio": 30.0,
    "costo": 12.0,
    "precioUsuario": 45.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable Pulpo CAB259",
    "precio": 80.0,
    "costo": 27.5,
    "precioUsuario": 120.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Doble T.C y USB GAR161",
    "precio": 80.0,
    "costo": 40.5,
    "precioUsuario": 100.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Mouse Inalámbrico RAT001",
    "precio": 105.0,
    "costo": 58.5,
    "precioUsuario": 135.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Inalámbricos de Colores INPODS12",
@@ -168,32 +187,36 @@
     "Azul marino",
     "Verde",
     "Amarillo"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Cable HDMI 3 M",
    "precio": 50.0,
    "costo": 24.0,
    "precioUsuario": 65.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Tira Led de 5 Mts",
    "precio": 125.0,
    "costo": 69.0,
    "precioUsuario": 160.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC060",
-   "precio": 255.0,
+   "precio": 299,
    "costo": 165.0,
    "precioUsuario": 310.0,
    "proveedor": "GDL",
    "colores": [
     "Negro",
     "Rojo"
-   ]
+   ],
+   "mod": 1788124887285
   },
   {
    "nombre": "Bocina BOC062",
@@ -204,14 +227,16 @@
    "colores": [
     "Negro",
     "Rojo"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC241",
    "precio": 400.0,
    "costo": 232.0,
    "precioUsuario": 510.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC242",
@@ -222,7 +247,8 @@
    "colores": [
     "Negro",
     "Rojo"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC243",
@@ -233,7 +259,8 @@
    "colores": [
     "Negro",
     "Rojo"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC244",
@@ -244,42 +271,48 @@
    "colores": [
     "Negro",
     "Rojo"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina BOC250",
    "precio": 600.0,
    "costo": 335.5,
    "precioUsuario": 780.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Earpods (para iPhone)",
    "precio": 70.0,
    "costo": 39.5,
    "precioUsuario": 90.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos (para T.C.) AUT125",
    "precio": 70.0,
    "costo": 37.0,
    "precioUsuario": 90.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Con Cable T.C. a T.C. GAR153",
    "precio": 80.0,
    "costo": 43.0,
    "precioUsuario": 100.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Con Cable T.C. a iPhone GAR154",
    "precio": 80.0,
    "costo": 46.0,
    "precioUsuario": 100.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Carga Rápida 20W GAR152",
@@ -290,7 +323,8 @@
    "colores": [
     "Negro",
     "Blanco"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Carga Rápida 30W GAR164",
@@ -301,14 +335,16 @@
    "colores": [
     "Negro",
     "Blanco"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador T.C. 45W GAR172",
    "precio": 150.0,
    "costo": 66.0,
    "precioUsuario": 180.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Carga Rápida 45W GAR171",
@@ -319,28 +355,32 @@
    "colores": [
     "Negro",
     "Blanco"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Receptor Bluetooth XO8127",
    "precio": 65.0,
    "costo": 32.0,
    "precioUsuario": 85.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Soporte Universal Con Base Giratoria (Base Metal)",
    "precio": 45.0,
    "costo": 21.5,
    "precioUsuario": 60.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Cargador Inalámbrico 1 Hora GAR151",
    "precio": 180.0,
    "costo": 85.5,
    "precioUsuario": 220.0,
-   "proveedor": "GDL"
+   "proveedor": "GDL",
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Clip On (G-TIDE)",
@@ -354,7 +394,8 @@
     "Verde",
     "Azul",
     "Morado"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Bocina Inalámbrica para Bicicleta (Min. 5 pz)",
@@ -367,7 +408,8 @@
     "Blanco",
     "Rojo",
     "Azul"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Deportivos (Min. 5 pz) AC01",
@@ -379,7 +421,8 @@
     "Negro",
     "Blanco",
     "Morado"
-   ]
+   ],
+   "mod": 1788124886285
   },
   {
    "nombre": "Audífonos Chicos Colores L22 (5 pz)",
@@ -392,8 +435,14 @@
     "Blanco",
     "Lila",
     "Rosa"
-   ]
+   ],
+   "mod": 1788124886285
   }
  ],
- "existencias": {}
+ "existencias": {
+  "BOC060|Rojo": {
+   "piezas": 9,
+   "mod": 1788124887285
+  }
+ }
 }
