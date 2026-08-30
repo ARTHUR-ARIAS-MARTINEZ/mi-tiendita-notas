@@ -41,6 +41,7 @@ const CATALOGO_DEFAULT = [
   { nombre: "Soporte Magnético para Celular PJ097", precio: 50, costo: 16, precioUsuario: 65, proveedor: "GDL" },
   { nombre: "Cable T.C - iPhone CAB258", precio: 50, costo: 18.5, precioUsuario: 65, proveedor: "GDL" },
   { nombre: "Cable T.C - T.C CAB252", precio: 50, costo: 13.5, precioUsuario: 65, proveedor: "GDL" },
+  { nombre: "Cable Plug 3.5 VGA / Audio / Video 1.5 Mts", precio: 30, costo: 12, precioUsuario: 45, proveedor: "GDL" },
   { nombre: "Cable Pulpo CAB259", precio: 80, costo: 27.5, precioUsuario: 120, proveedor: "GDL" },
   { nombre: "Cargador Doble T.C y USB GAR161", precio: 80, costo: 40.5, precioUsuario: 100, proveedor: "GDL" },
   { nombre: "Mouse Inalámbrico RAT001", precio: 105, costo: 58.5, precioUsuario: 135, proveedor: "GDL" },

@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v37 · 20 ago 2026 · Historial recuperado";
+const APP_VERSION = "v38 · 20 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -707,6 +707,26 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
       }, 1500);
     }
   } catch (e) { /* si algo falla, la app abre igual y no se pierde nada */ }
+  localStorage.setItem(FLAG, "1");
+})();
+
+// Producto que Arthur tenia en el Cotizador de su computadora y no en el
+// celular (leido directo del navegador de su compu, 2026-08-30).
+// Solo se agrega si no lo tiene ya. No toca nada mas.
+(function agregarCablePlug() {
+  const FLAG = "mte_migr_cable_plug_35";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const yaEsta = State.catalogo.some(p =>
+      String(p.nombre || "").toLowerCase().includes("plug 3.5"));
+    if (!yaEsta) {
+      State.catalogo.push({
+        id: uid(), nombre: "Cable Plug 3.5 VGA / Audio / Video 1.5 Mts",
+        precio: 30, costo: 12, precioUsuario: 45, proveedor: "GDL", colores: [],
+      });
+      saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    }
+  }
   localStorage.setItem(FLAG, "1");
 })();
 
