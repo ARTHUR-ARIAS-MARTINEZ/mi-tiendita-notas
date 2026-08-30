@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v36 · 20 ago 2026";
+const APP_VERSION = "v37 · 20 ago 2026 · Historial recuperado";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -663,6 +663,53 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// Restauracion automatica del historial de julio (2026-08-30).
+// La memoria del celular se limpio y se perdieron las tienditas y las notas.
+// Aqui se regresan solas, reconstruidas del reporte del 19 de julio.
+//
+// ES ADITIVA Y SEGURA: solo mete lo que NO este ya. Una nota se reconoce por
+// su folio y su fecha, y una tiendita por su nombre. Si el celular ya tiene
+// esa nota, no se duplica. Nunca se borra nada.
+(function restaurarHistorialJulio() {
+  const FLAG = "mte_restaurado_julio_2026";
+  if (localStorage.getItem(FLAG)) return;
+  if (typeof RECUPERACION_JULIO === "undefined") return;
+  try {
+    const claveNota = (t) => String(t.folio) + "|" + String(t.fecha).slice(0, 16);
+    const yaEstan = new Set((State.tickets || []).map(claveNota));
+    let notasNuevas = 0;
+    for (const t of RECUPERACION_JULIO.tickets) {
+      if (yaEstan.has(claveNota(t))) continue;
+      State.tickets.push(t);
+      yaEstan.add(claveNota(t));
+      notasNuevas++;
+    }
+
+    const nombres = new Set((State.clientes || []).map(c => String(c.nombre || "").trim().toLowerCase()));
+    let tienditasNuevas = 0;
+    for (const c of RECUPERACION_JULIO.clientes) {
+      const n = String(c.nombre || "").trim().toLowerCase();
+      if (!n || nombres.has(n)) continue;
+      State.clientes.push(c);
+      nombres.add(n);
+      tienditasNuevas++;
+    }
+
+    if (notasNuevas || tienditasNuevas) {
+      State.tickets.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      saveJSON(STORE_KEYS.tickets, State.tickets);
+      saveJSON(STORE_KEYS.clientes, State.clientes);
+      // Se avisa en pantalla en cuanto la app termine de abrir.
+      setTimeout(() => {
+        try {
+          toast("Se recuperaron " + notasNuevas + " notas y " + tienditasNuevas + " tienditas de julio.");
+        } catch (e) {}
+      }, 1500);
+    }
+  } catch (e) { /* si algo falla, la app abre igual y no se pierde nada */ }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() {
   guardarSeguro(STORE_KEYS.catalogo, State.catalogo);
@@ -736,7 +783,7 @@ function showScreen(name) {
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.screen === name));
   if (name === "clientes") renderClientes();
   if (name === "historial") renderHistorial();
-  if (name === "rotacion") { renderRotacion(); renderResurtido(); }
+  if (name === "rotacion") { acomodarPeriodoRotacion(); renderRotacion(); renderResurtido(); }
   if (name === "ajustes") renderAjustes();
   if (name === "nota") renderNota();
   // Siempre se abre en el primer producto. Antes te dejaba donde te
@@ -2305,6 +2352,26 @@ function textoDesdeUltima(diasSin) {
   if (diasSin <= 0) return "hoy";
   if (diasSin === 1) return "ayer";
   return "hace " + diasSin + " días";
+}
+
+// Si no hay ventas en el periodo elegido pero SI las hay mas atras, se
+// cambia solo a uno que si tenga datos. Antes la pantalla salia vacia y
+// parecia que no habia nada, cuando en realidad las ventas eran mas viejas.
+let periodoYaAcomodado = false;
+function acomodarPeriodoRotacion() {
+  if (periodoYaAcomodado) return;
+  const sel = document.getElementById("rotacion-periodo");
+  if (!sel || !State.tickets.length) return;
+  const hay = (dias) => {
+    if (!dias) return State.tickets.length > 0;
+    const desde = Date.now() - dias * 86400000;
+    return State.tickets.some(t => new Date(t.fecha).getTime() >= desde);
+  };
+  if (hay(Number(sel.value) || 30)) { periodoYaAcomodado = true; return; }
+  for (const opcion of ["30", "60", "90", "0"]) {
+    if (hay(Number(opcion))) { sel.value = opcion; break; }
+  }
+  periodoYaAcomodado = true;
 }
 
 function renderRotacion() {
