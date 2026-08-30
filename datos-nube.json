@@ -1,0 +1,399 @@
+{
+ "version": 1,
+ "actualizado": "2026-08-30T00:00:00.000Z",
+ "quien": "primera carga desde la computadora",
+ "productos": [
+  {
+   "nombre": "Cable Tipo C CAB237",
+   "precio": 35.0,
+   "costo": 8.8,
+   "precioUsuario": 50.0,
+   "proveedor": "Chinos"
+  },
+  {
+   "nombre": "Cable iPhone CAB238",
+   "precio": 35.0,
+   "costo": 8.8,
+   "precioUsuario": 50.0,
+   "proveedor": "Chinos"
+  },
+  {
+   "nombre": "Audífono Buytiti EZ-165",
+   "precio": 35.0,
+   "costo": 7.0,
+   "precioUsuario": 50.0,
+   "proveedor": "Buytiti",
+   "colores": [
+    "Negro",
+    "Rojo",
+    "Blanco",
+    "Verde",
+    "Azul"
+   ]
+  },
+  {
+   "nombre": "Cable V8 CAB236",
+   "precio": 50.0,
+   "costo": 9.5,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador de Carga Media 2 Amp GAR063",
+   "precio": 35.0,
+   "costo": 15.0,
+   "precioUsuario": 50.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Reloj Inteligente T-500",
+   "precio": 210.0,
+   "costo": 120.0,
+   "precioUsuario": 260.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Naranja",
+    "Blanco",
+    "Azul"
+   ]
+  },
+  {
+   "nombre": "Audífonos Inalámbricos TWS 1 Hora AUT205",
+   "precio": 220.0,
+   "costo": 130.5,
+   "precioUsuario": 270.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Blanco"
+   ]
+  },
+  {
+   "nombre": "Audífonos Clip 1 Hora AUT210",
+   "precio": 250.0,
+   "costo": 155.0,
+   "precioUsuario": 300.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Power Bank con Cables 5000 mAh GAR261",
+   "precio": 190.0,
+   "costo": 104.0,
+   "precioUsuario": 245.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Power Bank con Cables 10,000 mAh GAR148",
+   "precio": 220.0,
+   "costo": 134.0,
+   "precioUsuario": 270.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cable T.C Carga Rápida 3 Amp CAB251",
+   "precio": 50.0,
+   "costo": 11.0,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Carro Doble USB 2 Amp GAR128",
+   "precio": 50.0,
+   "costo": 16.0,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Soporte Magnético para Celular PJ097",
+   "precio": 50.0,
+   "costo": 16.0,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cable T.C - iPhone CAB258",
+   "precio": 50.0,
+   "costo": 18.5,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cable T.C - T.C CAB252",
+   "precio": 50.0,
+   "costo": 13.5,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cable Plug 3.5 VGA / Audio / Video 1.5 Mts",
+   "precio": 30.0,
+   "costo": 12.0,
+   "precioUsuario": 45.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cable Pulpo CAB259",
+   "precio": 80.0,
+   "costo": 27.5,
+   "precioUsuario": 120.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Doble T.C y USB GAR161",
+   "precio": 80.0,
+   "costo": 40.5,
+   "precioUsuario": 100.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Mouse Inalámbrico RAT001",
+   "precio": 105.0,
+   "costo": 58.5,
+   "precioUsuario": 135.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Audífonos Inalámbricos de Colores INPODS12",
+   "precio": 120.0,
+   "costo": 45.0,
+   "precioUsuario": 150.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Blanco",
+    "Gris",
+    "Rosa",
+    "Azul",
+    "Azul marino",
+    "Verde",
+    "Amarillo"
+   ]
+  },
+  {
+   "nombre": "Cable HDMI 3 M",
+   "precio": 50.0,
+   "costo": 24.0,
+   "precioUsuario": 65.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Tira Led de 5 Mts",
+   "precio": 125.0,
+   "costo": 69.0,
+   "precioUsuario": 160.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Bocina BOC060",
+   "precio": 255.0,
+   "costo": 165.0,
+   "precioUsuario": 310.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Rojo"
+   ]
+  },
+  {
+   "nombre": "Bocina BOC062",
+   "precio": 210.0,
+   "costo": 113.5,
+   "precioUsuario": 275.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Rojo"
+   ]
+  },
+  {
+   "nombre": "Bocina BOC241",
+   "precio": 400.0,
+   "costo": 232.0,
+   "precioUsuario": 510.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Bocina BOC242",
+   "precio": 300.0,
+   "costo": 171.0,
+   "precioUsuario": 390.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Rojo"
+   ]
+  },
+  {
+   "nombre": "Bocina BOC243",
+   "precio": 215.0,
+   "costo": 135.5,
+   "precioUsuario": 260.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Rojo"
+   ]
+  },
+  {
+   "nombre": "Bocina BOC244",
+   "precio": 260.0,
+   "costo": 140.5,
+   "precioUsuario": 340.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Rojo"
+   ]
+  },
+  {
+   "nombre": "Bocina BOC250",
+   "precio": 600.0,
+   "costo": 335.5,
+   "precioUsuario": 780.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Audífonos Earpods (para iPhone)",
+   "precio": 70.0,
+   "costo": 39.5,
+   "precioUsuario": 90.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Audífonos (para T.C.) AUT125",
+   "precio": 70.0,
+   "costo": 37.0,
+   "precioUsuario": 90.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Con Cable T.C. a T.C. GAR153",
+   "precio": 80.0,
+   "costo": 43.0,
+   "precioUsuario": 100.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Con Cable T.C. a iPhone GAR154",
+   "precio": 80.0,
+   "costo": 46.0,
+   "precioUsuario": 100.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Carga Rápida 20W GAR152",
+   "precio": 80.0,
+   "costo": 32.5,
+   "precioUsuario": 120.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Blanco"
+   ]
+  },
+  {
+   "nombre": "Cargador Carga Rápida 30W GAR164",
+   "precio": 130.0,
+   "costo": 55.5,
+   "precioUsuario": 160.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Blanco"
+   ]
+  },
+  {
+   "nombre": "Cargador T.C. 45W GAR172",
+   "precio": 150.0,
+   "costo": 66.0,
+   "precioUsuario": 180.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Carga Rápida 45W GAR171",
+   "precio": 210.0,
+   "costo": 101.5,
+   "precioUsuario": 250.0,
+   "proveedor": "GDL",
+   "colores": [
+    "Negro",
+    "Blanco"
+   ]
+  },
+  {
+   "nombre": "Receptor Bluetooth XO8127",
+   "precio": 65.0,
+   "costo": 32.0,
+   "precioUsuario": 85.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Soporte Universal Con Base Giratoria (Base Metal)",
+   "precio": 45.0,
+   "costo": 21.5,
+   "precioUsuario": 60.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Cargador Inalámbrico 1 Hora GAR151",
+   "precio": 180.0,
+   "costo": 85.5,
+   "precioUsuario": 220.0,
+   "proveedor": "GDL"
+  },
+  {
+   "nombre": "Audífonos Clip On (G-TIDE)",
+   "precio": 250.0,
+   "costo": 118.0,
+   "precioUsuario": 300.0,
+   "proveedor": "G Tide",
+   "colores": [
+    "Negro",
+    "Blanco",
+    "Verde",
+    "Azul",
+    "Morado"
+   ]
+  },
+  {
+   "nombre": "Bocina Inalámbrica para Bicicleta (Min. 5 pz)",
+   "precio": 210.0,
+   "costo": 122.0,
+   "precioUsuario": 260.0,
+   "proveedor": "G Tide",
+   "colores": [
+    "Negro",
+    "Blanco",
+    "Rojo",
+    "Azul"
+   ]
+  },
+  {
+   "nombre": "Audífonos Deportivos (Min. 5 pz) AC01",
+   "precio": 210.0,
+   "costo": 99.0,
+   "precioUsuario": 260.0,
+   "proveedor": "G Tide",
+   "colores": [
+    "Negro",
+    "Blanco",
+    "Morado"
+   ]
+  },
+  {
+   "nombre": "Audífonos Chicos Colores L22 (5 pz)",
+   "precio": 160.0,
+   "costo": 89.0,
+   "precioUsuario": 190.0,
+   "proveedor": "G Tide",
+   "colores": [
+    "Negro",
+    "Blanco",
+    "Lila",
+    "Rosa"
+   ]
+  }
+ ],
+ "existencias": {}
+}
