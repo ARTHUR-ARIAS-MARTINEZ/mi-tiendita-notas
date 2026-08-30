@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v35 · 20 ago 2026 · Rescate";
+const APP_VERSION = "v36 · 20 ago 2026";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -664,7 +664,10 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
 })();
 
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
-function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
+function persistCatalogo() {
+  guardarSeguro(STORE_KEYS.catalogo, State.catalogo);
+  respaldoAutomatico(STORE_KEYS.catalogo, State.catalogo);
+}
 // Cada vez que se guardan clientes o notas se deja ADEMAS una copia aparte.
 // La copia solo se pisa cuando la lista nueva tiene igual o mas cosas que la
 // copia: asi, si un dia la lista se vacia por lo que sea, el respaldo aguanta.
@@ -698,7 +701,21 @@ function persistTickets() {
   guardarSeguro(STORE_KEYS.tickets, State.tickets);
   respaldoAutomatico(STORE_KEYS.tickets, State.tickets);
 }
-function persistStock() { saveJSON(STORE_KEYS.stock, State.stock); }
+function persistStock() {
+  guardarSeguro(STORE_KEYS.stock, State.stock);
+  // Las existencias son un objeto, no una lista: se respalda si no se pierde
+  // informacion (igual o mas renglones que la copia anterior).
+  try {
+    const bk = STORE_KEYS.stock + "_bk";
+    let ant = {};
+    try { ant = JSON.parse(localStorage.getItem(bk)) || {}; } catch (e) {}
+    const cuantas = (o) => Object.values(o || {}).filter(v => Number(v) > 0).length;
+    if (cuantas(State.stock) >= cuantas(ant)) {
+      localStorage.setItem(bk, JSON.stringify(State.stock));
+      localStorage.setItem(bk + "_fecha", new Date().toISOString());
+    }
+  } catch (e) {}
+}
 // Las fotos son lo único que puede llenar la memoria del navegador, así que
 // aquí sí se avisa si no cupo (devuelve false) en vez de tronar la app.
 function persistFotos() {
@@ -722,7 +739,10 @@ function showScreen(name) {
   if (name === "rotacion") { renderRotacion(); renderResurtido(); }
   if (name === "ajustes") renderAjustes();
   if (name === "nota") renderNota();
-  if (name === "vitrina") renderVitrina();
+  // Siempre se abre en el primer producto. Antes te dejaba donde te
+  // quedaste, y si habias terminado en la pantalla de cobrar, al volver
+  // aparecias ahi y parecia que no habia productos.
+  if (name === "vitrina") renderVitrina(true);
 }
 
 // ===================================================================
@@ -1176,6 +1196,9 @@ function renderVitrina(irAlInicio) {
   const ultima = carrusel.children.length - 1;
   const destino = irAlInicio ? 0 : Math.max(0, Math.min(indiceAntes, ultima));
   carrusel.scrollTo({ left: destino * carrusel.clientWidth, behavior: "instant" });
+  // La barra se pinta hasta el final: si se hace antes, todavia dice la
+  // diapositiva vieja.
+  actualizarBarraVitrina();
 }
 
 function slideDeProducto(p) {
