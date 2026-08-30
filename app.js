@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v34 · 20 ago 2026";
+const APP_VERSION = "v35 · 20 ago 2026 · Rescate";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -665,8 +665,39 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
 
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
-function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
-function persistTickets() { saveJSON(STORE_KEYS.tickets, State.tickets); }
+// Cada vez que se guardan clientes o notas se deja ADEMAS una copia aparte.
+// La copia solo se pisa cuando la lista nueva tiene igual o mas cosas que la
+// copia: asi, si un dia la lista se vacia por lo que sea, el respaldo aguanta.
+function respaldoAutomatico(clave, lista) {
+  try {
+    if (!Array.isArray(lista)) return;
+    const bk = clave + "_bk";
+    let anterior = [];
+    try { anterior = JSON.parse(localStorage.getItem(bk)) || []; } catch (e) {}
+    if (!Array.isArray(anterior) || lista.length >= anterior.length) {
+      localStorage.setItem(bk, JSON.stringify(lista));
+      localStorage.setItem(bk + "_fecha", new Date().toISOString());
+    }
+  } catch (e) { /* memoria llena: el respaldo viejo se queda como estaba */ }
+}
+
+// Guardar sin que la app truene si la memoria del celular esta llena.
+function guardarSeguro(clave, valor) {
+  try { saveJSON(clave, valor); return true; }
+  catch (e) {
+    toast("⚠️ No se pudo guardar: la memoria del celular esta llena. Borra fotos de productos en Ajustes.");
+    return false;
+  }
+}
+
+function persistClientes() {
+  guardarSeguro(STORE_KEYS.clientes, State.clientes);
+  respaldoAutomatico(STORE_KEYS.clientes, State.clientes);
+}
+function persistTickets() {
+  guardarSeguro(STORE_KEYS.tickets, State.tickets);
+  respaldoAutomatico(STORE_KEYS.tickets, State.tickets);
+}
 function persistStock() { saveJSON(STORE_KEYS.stock, State.stock); }
 // Las fotos son lo único que puede llenar la memoria del navegador, así que
 // aquí sí se avisa si no cupo (devuelve false) en vez de tronar la app.
@@ -1565,6 +1596,7 @@ function renderAjustes() {
   renderProductosAjustes();
   renderExistencias();
   revisarOffline();
+  revisarDatos();
   document.getElementById("printer-name").textContent = Printer.isConnected()
     ? "Conectada"
     : (Printer.getLastDeviceName() ? "Última usada: " + Printer.getLastDeviceName() + " (desconectada)" : "Sin conectar");
@@ -3067,6 +3099,113 @@ async function instalarApp() {
   actualizarTarjetaInstalar();
 }
 
+// ---------- Rescate de datos ----------
+// Si la app se ve vacia, esto revisa la memoria del celular TAL CUAL esta,
+// sin interpretarla, para ver si los datos siguen ahi aunque no se puedan
+// leer (por ejemplo, si un guardado se corto a la mitad).
+
+// Intenta leer una lista aunque este cortada a la mitad: se recorta en el
+// ultimo registro completo y se vuelve a cerrar.
+function repararLista(texto) {
+  if (!texto) return null;
+  try { const v = JSON.parse(texto); if (Array.isArray(v)) return v; } catch (e) {}
+  let i = texto.lastIndexOf("}");
+  let vueltas = 0;
+  while (i > 0 && vueltas < 500) {
+    try {
+      const v = JSON.parse(texto.slice(0, i + 1) + "]");
+      if (Array.isArray(v) && v.length) return v;
+    } catch (e) {}
+    i = texto.lastIndexOf("}", i - 1);
+    vueltas++;
+  }
+  return null;
+}
+
+function mirarLlave(clave) {
+  let crudo = null;
+  try { crudo = localStorage.getItem(clave); } catch (e) {}
+  if (crudo === null) return { existe: false, letras: 0, lista: null };
+  let lista = null;
+  try { const v = JSON.parse(crudo); if (Array.isArray(v)) lista = v; } catch (e) {}
+  return { existe: true, letras: crudo.length, lista, danado: lista === null };
+}
+
+function revisarDatos() {
+  const caja = document.getElementById("rescate-info");
+  if (!caja) return;
+  const partes = [];
+  const revisar = (titulo, clave) => {
+    const a = mirarLlave(clave);
+    const b = mirarLlave(clave + "_bk");
+    let linea = titulo + ": ";
+    if (!a.existe) linea += "no hay nada guardado";
+    else if (a.danado) linea += "DAÑADO (" + a.letras + " letras guardadas, no se pueden leer)";
+    else linea += a.lista.length + " guardados";
+    if (b.existe && b.lista && b.lista.length) {
+      let fecha = "";
+      try { fecha = new Date(localStorage.getItem(clave + "_bk_fecha")).toLocaleString("es-MX"); } catch (e) {}
+      linea += " · copia de respaldo con " + b.lista.length + (fecha ? " (del " + fecha + ")" : "");
+    }
+    partes.push(linea);
+    return { a, b };
+  };
+  const cli = revisar("Tienditas", STORE_KEYS.clientes);
+  const tks = revisar("Notas del historial", STORE_KEYS.tickets);
+  partes.push("Productos: " + State.catalogo.length);
+
+  const puedeRescatar =
+    (cli.b.lista && cli.b.lista.length > State.clientes.length) ||
+    (tks.b.lista && tks.b.lista.length > State.tickets.length) ||
+    (cli.a.danado || tks.a.danado);
+  const btn = document.getElementById("btn-rescatar");
+  if (btn) btn.classList.toggle("hidden", !puedeRescatar);
+  if (puedeRescatar) partes.push("✅ Hay algo que se puede recuperar. Presiona el botón verde.");
+  else partes.push("No hay nada perdido que recuperar: lo guardado es lo que ves.");
+
+  caja.textContent = partes.join("\n");
+}
+
+function rescatarDatos() {
+  let recuperados = [];
+  // Clientes
+  const cliBk = mirarLlave(STORE_KEYS.clientes + "_bk");
+  const cliRaw = mirarLlave(STORE_KEYS.clientes);
+  let clientes = null;
+  if (cliRaw.danado) clientes = repararLista(localStorage.getItem(STORE_KEYS.clientes));
+  if ((!clientes || !clientes.length) && cliBk.lista && cliBk.lista.length > State.clientes.length) clientes = cliBk.lista;
+  // Notas
+  const tkBk = mirarLlave(STORE_KEYS.tickets + "_bk");
+  const tkRaw = mirarLlave(STORE_KEYS.tickets);
+  let tickets = null;
+  if (tkRaw.danado) tickets = repararLista(localStorage.getItem(STORE_KEYS.tickets));
+  if ((!tickets || !tickets.length) && tkBk.lista && tkBk.lista.length > State.tickets.length) tickets = tkBk.lista;
+
+  if (!clientes && !tickets) { toast("No se encontró nada más que recuperar."); return; }
+  const resumen =
+    (clientes ? "• " + clientes.length + " tienditas (ahorita tienes " + State.clientes.length + ")\n" : "") +
+    (tickets ? "• " + tickets.length + " notas del historial (ahorita tienes " + State.tickets.length + ")\n" : "");
+  if (!confirm("Se van a recuperar:\n\n" + resumen + "\nNo se borra nada de lo que ya tienes. ¿Adelante?")) return;
+
+  if (clientes) {
+    const porId = new Map();
+    for (const c of clientes.concat(State.clientes)) if (c && c.id) porId.set(c.id, c);
+    State.clientes = Array.from(porId.values());
+    guardarSeguro(STORE_KEYS.clientes, State.clientes);
+    recuperados.push(State.clientes.length + " tienditas");
+  }
+  if (tickets) {
+    const porId = new Map();
+    for (const t of tickets.concat(State.tickets)) if (t && t.id) porId.set(t.id, t);
+    State.tickets = Array.from(porId.values()).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    guardarSeguro(STORE_KEYS.tickets, State.tickets);
+    recuperados.push(State.tickets.length + " notas");
+  }
+  revisarDatos();
+  renderClientes(); renderHistorial();
+  toast("Recuperado: " + recuperados.join(" y ") + ".");
+}
+
 // ---------- Uso sin internet ----------
 // La app se guarda entera en el celular. Aquí se comprueba si de verdad
 // quedó guardada, y hay un botón para forzarlo si algo faltó.
@@ -3194,6 +3333,10 @@ async function initApp() {
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
   const btnCatalogo = document.getElementById("btn-toggle-catalogo");
   if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
+  const btnRescatar = document.getElementById("btn-rescatar");
+  if (btnRescatar) btnRescatar.addEventListener("click", rescatarDatos);
+  const btnRevisar = document.getElementById("btn-revisar-datos");
+  if (btnRevisar) btnRevisar.addEventListener("click", revisarDatos);
   const btnOffline = document.getElementById("btn-guardar-offline");
   if (btnOffline) btnOffline.addEventListener("click", guardarTodoOffline);
   const btnExistencias = document.getElementById("btn-toggle-existencias");
