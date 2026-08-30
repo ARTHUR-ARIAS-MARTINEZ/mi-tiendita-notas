@@ -139,6 +139,24 @@
   </div>
 
   <div class="card">
+    <h3>☁️ Nube · tus productos en un solo lugar</h3>
+    <div class="form-hint">
+      El catálogo y las existencias viven en tu propio GitHub. Lo que cambies aquí
+      sube, y lo que se cambie en la compu baja. <b>Sin internet la app funciona
+      igual</b>: se sincroniza sola en cuanto hay señal.
+    </div>
+    <div class="estado-offline" id="estado-nube">Revisando…</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-accent btn-sm" id="btn-sincronizar">☁️ Sincronizar ahora</button>
+      <button class="btn btn-secondary btn-sm" id="btn-llave-nube">🔑 Poner la llave</button>
+    </div>
+    <div class="form-hint" style="margin-top:8px">
+      La llave se pone <b>una sola vez por aparato</b> y sirve para SUBIR cambios.
+      Se queda guardada solo en este celular.
+    </div>
+  </div>
+
+  <div class="card">
     <h3>🔧 Revisar y recuperar mis datos</h3>
     <div class="form-hint">
       Si ves la app vacía, aquí se revisa la memoria de tu celular tal cual está,
@@ -408,6 +426,7 @@
 <script src="catalogo-default.js"></script>
 <script src="productos-imagenes.js"></script>
 <script src="recuperacion.js"></script>
+<script src="nube.js"></script>
 <script src="printer.js"></script>
 <script src="app.js"></script>
 </body>

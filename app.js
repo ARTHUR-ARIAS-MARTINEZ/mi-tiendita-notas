@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v38 · 20 ago 2026";
+const APP_VERSION = "v39 · 20 ago 2026 · Nube";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -936,7 +936,9 @@ function stockDe(p, color) {
 
 function fijarStock(id, piezas, color) {
   const n = Math.max(0, Math.floor(Number(piezas) || 0));
-  State.stock[claveStock(id, color)] = n;
+  const clave = claveStock(id, color);
+  State.stock[clave] = n;
+  if (typeof nubeMarcarStock === "function") nubeMarcarStock(clave);
   persistStock();
 }
 
@@ -1167,7 +1169,10 @@ function conciliarStockDeLaVenta() {
     const p = State.catalogo.find(x => x.id === id);
     if (!p || esProductoPrincipal(p.nombre)) continue; // los principales van a consignación
     const delta = enCarrito(id, color) - (State.cobrado[clave] || 0);
-    if (delta !== 0) State.stock[clave] = Math.max(0, stockDe(p, color) - delta);
+    if (delta !== 0) {
+      State.stock[clave] = Math.max(0, stockDe(p, color) - delta);
+      if (typeof nubeMarcarStock === "function") nubeMarcarStock(clave);
+    }
   }
   State.cobrado = {};
   for (const it of State.cart) State.cobrado[claveStock(it.id, it.color)] = it.cantidad;
@@ -1687,6 +1692,7 @@ function renderAjustes() {
   renderExistencias();
   revisarOffline();
   revisarDatos();
+  if (typeof nubePintarEstado === "function") nubePintarEstado();
   document.getElementById("printer-name").textContent = Printer.isConnected()
     ? "Conectada"
     : (Printer.getLastDeviceName() ? "Última usada: " + Printer.getLastDeviceName() + " (desconectada)" : "Sin conectar");
@@ -1921,6 +1927,7 @@ function editarProducto(id, campo, valor) {
   else if (campo === "precioUsuario") p.precioUsuario = normalizarCosto(valor);
   else if (campo === "proveedor") p.proveedor = String(valor || "").trim();
   else p[campo] = valor;
+  if (typeof nubeMarcarProducto === "function") nubeMarcarProducto(p);
   persistCatalogo();
   if (campo === "costo" || campo === "precio") renderProductosAjustes();
 }
@@ -1941,6 +1948,7 @@ function agregarProducto(ev) {
   const proveedor = (document.getElementById("np-proveedor")?.value || "").trim();
   if (!nombre) return;
   const nuevo = { id: uid(), nombre, precio, costo, precioUsuario, proveedor, colores: [] };
+  if (typeof nubeMarcarProducto === "function") nubeMarcarProducto(nuevo);
   State.catalogo.push(nuevo);
   persistCatalogo();
   // Las piezas que llevas: sin esto el producto no aparece en la Vitrina,
@@ -3209,6 +3217,20 @@ async function instalarApp() {
   actualizarTarjetaInstalar();
 }
 
+function pedirLlaveNube() {
+  const actual = (typeof nubeToken === "function") ? nubeToken() : "";
+  const t = prompt(
+    "Pega aquí la llave de GitHub para poder SUBIR cambios a la nube.\n\n" +
+    "Se guarda solo en este celular. Si la dejas vacía, la app igual BAJA los " +
+    "cambios, nada más no los sube.", actual);
+  if (t === null) return;
+  nubeGuardarToken(t);
+  nubePintarEstado();
+  toast(t.trim() ? "Llave guardada. Ya puedes subir cambios." : "Llave borrada.");
+  if (t.trim()) nubeSincronizar(false);
+}
+
+
 // ---------- Rescate de datos ----------
 // Si la app se ve vacia, esto revisa la memoria del celular TAL CUAL esta,
 // sin interpretarla, para ver si los datos siguen ahi aunque no se puedan
@@ -3443,6 +3465,10 @@ async function initApp() {
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
   const btnCatalogo = document.getElementById("btn-toggle-catalogo");
   if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
+  const btnSinc = document.getElementById("btn-sincronizar");
+  if (btnSinc) btnSinc.addEventListener("click", function () { nubeSincronizar(false); });
+  const btnLlave = document.getElementById("btn-llave-nube");
+  if (btnLlave) btnLlave.addEventListener("click", pedirLlaveNube);
   const btnRescatar = document.getElementById("btn-rescatar");
   if (btnRescatar) btnRescatar.addEventListener("click", rescatarDatos);
   const btnRevisar = document.getElementById("btn-revisar-datos");
@@ -3509,6 +3535,8 @@ async function initApp() {
     const el = document.getElementById(id);
     if (el) el.addEventListener("input", calcularPaquetes);
   });
+
+  if (typeof nubeArrancar === "function") nubeArrancar();
 
   showScreen("nota");
 
