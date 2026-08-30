@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v32 · 20 ago 2026";
+const APP_VERSION = "v33 · 20 ago 2026 · Colores";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -75,7 +75,7 @@ function catalogoDeFabrica() {
   return CATALOGO_DEFAULT.map(p => ({
     id: uid(), nombre: p.nombre, precio: p.precio,
     costo: p.costo ?? null, precioUsuario: p.precioUsuario ?? null,
-    proveedor: p.proveedor || "",
+    proveedor: p.proveedor || "", colores: Array.isArray(p.colores) ? p.colores.slice() : [],
   }));
 }
 
@@ -101,10 +101,12 @@ function sanearCatalogo(valor) {
     const costo = normalizarCosto(item.costo);
     const precioUsuario = normalizarCosto(item.precioUsuario);
     const proveedor = typeof item.proveedor === "string" ? item.proveedor.trim() : "";
+    const colores = Array.isArray(item.colores)
+      ? item.colores.map(c => String(c).trim()).filter(Boolean) : [];
     if (nombre !== item.nombre || precio !== item.precio || id !== item.id
         || costo !== (item.costo ?? null) || precioUsuario !== (item.precioUsuario ?? null)
         || proveedor !== (item.proveedor ?? "")) reparado = true;
-    return { ...item, id, nombre, precio, costo, precioUsuario, proveedor };
+    return { ...item, id, nombre, precio, costo, precioUsuario, proveedor, colores };
   });
   return { lista, reparado };
 }
@@ -585,6 +587,43 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// Migracion: se le ponen los colores a los productos que ya estaban guardados
+// en el celular (2026-08-20). ADITIVA: si tu ya les habias puesto colores, se
+// respetan. Y las piezas que tenias contadas sin color NO se pierden: se pasan
+// al primer color, para que puedas repartirlas a mano desde Ajustes.
+(function ponerColores() {
+  const FLAG = "mte_migr_colores_2026_08";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const porCodigo = {}, porNombre = {};
+    for (const d of CATALOGO_DEFAULT) {
+      if (!Array.isArray(d.colores) || !d.colores.length) continue;
+      const c = codigoDeProducto(d.nombre);
+      if (c) porCodigo[c] = d.colores;
+      porNombre[soloAlfanumerico(normalizarTexto(d.nombre))] = d.colores;
+    }
+    let cambio = false, stockCambio = false;
+    for (const p of State.catalogo) {
+      if (Array.isArray(p.colores) && p.colores.length) continue; // ya tiene, se respeta
+      const c = codigoDeProducto(p.nombre);
+      const cols = (c && porCodigo[c]) || porNombre[soloAlfanumerico(normalizarTexto(p.nombre))];
+      if (!cols) continue;
+      p.colores = cols.slice();
+      cambio = true;
+      // Las piezas que ya tenia contadas sin color pasan al primer color.
+      const viejas = Number(State.stock[p.id]);
+      if (Number.isFinite(viejas) && viejas > 0) {
+        State.stock[p.id + "|" + cols[0]] = (Number(State.stock[p.id + "|" + cols[0]]) || 0) + viejas;
+        delete State.stock[p.id];
+        stockCambio = true;
+      }
+    }
+    if (cambio) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    if (stockCambio) saveJSON(STORE_KEYS.stock, State.stock);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 function persistNegocio() { saveJSON(STORE_KEYS.negocio, State.negocio); }
 function persistCatalogo() { saveJSON(STORE_KEYS.catalogo, State.catalogo); }
 function persistClientes() { saveJSON(STORE_KEYS.clientes, State.clientes); }
@@ -687,11 +726,21 @@ function esProductoPrincipal(nombre) {
 // "productos/" (por código y, si no trae, por palabras del nombre).
 // Devuelve null si no tiene ninguna: la Vitrina muestra entonces un recuadro
 // con el nombre, nunca se rompe.
-function fotoDe(p) {
+function fotoDe(p, color) {
   if (!p) return null;
-  const propia = State.fotos[p.id];
+  // Foto propia: primero la de ese color, si no la general del producto.
+  const propia = (color && State.fotos[claveStock(p.id, color)]) || State.fotos[p.id];
   if (propia) return propia;
   const codigo = codigoDeProducto(p.nombre);
+  if (color && typeof FOTOS_POR_COLOR !== "undefined") {
+    const plano = soloAlfanumerico(normalizarTexto(p.nombre));
+    let mapa = (codigo && FOTOS_POR_COLOR[codigo]) || null;
+    if (!mapa) {
+      const llave = Object.keys(FOTOS_POR_COLOR).find(k => k === k.toLowerCase() && plano.includes(k));
+      if (llave) mapa = FOTOS_POR_COLOR[llave];
+    }
+    if (mapa && mapa[color]) return CARPETA_FOTOS + mapa[color];
+  }
   if (codigo && FOTOS_POR_CODIGO[codigo]) return CARPETA_FOTOS + FOTOS_POR_CODIGO[codigo];
   const nombre = soloAlfanumerico(normalizarTexto(p.nombre));
   const regla = FOTOS_POR_PALABRAS.find(r => r.palabras.every(w => nombre.includes(w)));
@@ -702,30 +751,51 @@ function fotoDe(p) {
 // llevan cuenta de existencias. Por eso valen "sin límite".
 const SIN_LIMITE = Infinity;
 
-function stockDe(p) {
+// ---------- COLORES ----------
+// Un producto puede venir en varios colores y CADA COLOR lleva su propia
+// cuenta de piezas. Por dentro las existencias se guardan con una llave
+// "idDelProducto|Color"; los de un solo color usan nada mas el id.
+function coloresDe(p) {
+  return (p && Array.isArray(p.colores) && p.colores.length) ? p.colores : [];
+}
+function claveStock(id, color) {
+  return color ? id + "|" + color : id;
+}
+// Lo que se ve en la nota y se imprime en el ticket.
+function nombreConColor(nombre, color) {
+  return color ? nombre + " · " + color : nombre;
+}
+
+function stockDe(p, color) {
   if (esProductoPrincipal(p.nombre)) return SIN_LIMITE;
-  const n = State.stock[p.id];
+  const cols = coloresDe(p);
+  // Sin color pedido y con varios colores: se suman todos.
+  if (!color && cols.length) {
+    return cols.reduce((a, c) => a + (Number(State.stock[claveStock(p.id, c)]) || 0), 0);
+  }
+  const n = State.stock[claveStock(p.id, color)];
   return Number.isFinite(n) ? n : 0;
 }
 
-function fijarStock(id, piezas) {
+function fijarStock(id, piezas, color) {
   const n = Math.max(0, Math.floor(Number(piezas) || 0));
-  State.stock[id] = n;
+  State.stock[claveStock(id, color)] = n;
   persistStock();
 }
 
-// Piezas de ese producto que ya van apartadas en la venta actual.
-function enCarrito(id) {
-  const it = State.cart.find(x => x.id === id);
+// Piezas de ese producto (y color) que ya van apartadas en la venta actual.
+function enCarrito(id, color) {
+  const it = State.cart.find(x => x.id === id && (x.color || "") === (color || ""));
   return it ? it.cantidad : 0;
 }
 
 // Lo que TODAVÍA se puede agregar a esta venta sin pasarse de lo que llevas.
 // Las piezas ya impresas no se restan otra vez: esas ya salieron del stock.
-function disponibleParaVender(p) {
-  const s = stockDe(p);
+function disponibleParaVender(p, color) {
+  const s = stockDe(p, color);
   if (s === SIN_LIMITE) return SIN_LIMITE;
-  const porDescontar = Math.max(0, enCarrito(p.id) - (State.cobrado[p.id] || 0));
+  const k = claveStock(p.id, color);
+  const porDescontar = Math.max(0, enCarrito(p.id, color) - (State.cobrado[k] || 0));
   return Math.max(0, s - porDescontar);
 }
 
@@ -737,8 +807,13 @@ function disponibleParaVender(p) {
 function productosDeVitrina() {
   const ordenado = catalogoOrdenado();
   const principales = ordenado.filter(p => esProductoPrincipal(p.nombre));
+  const apartadas = (p) => {
+    const cols = coloresDe(p);
+    if (!cols.length) return enCarrito(p.id);
+    return cols.reduce((a, c) => a + enCarrito(p.id, c), 0);
+  };
   const novedosos = ordenado.filter(p =>
-    !esProductoPrincipal(p.nombre) && (stockDe(p) > 0 || enCarrito(p.id) > 0));
+    !esProductoPrincipal(p.nombre) && (stockDe(p) > 0 || apartadas(p) > 0));
   return principales.concat(novedosos);
 }
 
@@ -768,13 +843,25 @@ function renderCatalogoPicker(filter) {
   }
   const principales = productos.filter(p => esProductoPrincipal(p.nombre));
   const resto = productos.filter(p => !esProductoPrincipal(p.nombre));
-  const tarjeta = (p, principal) => `
-    <div class="prod-pick${principal ? " prod-pick-principal" : ""}" onclick="agregarAlCarrito('${p.id}')">
+  // Un producto con varios colores sale como una tarjeta por color, para que
+  // al tocarlo ya quede claro cuál color se está vendiendo.
+  const tarjetaColor = (p, principal, color) => {
+    const quedan = disponibleParaVender(p, color);
+    const agotado = quedan < 1;
+    return `
+    <div class="prod-pick${principal ? " prod-pick-principal" : ""}${agotado ? " prod-pick-agotado" : ""}"
+         onclick="agregarAlCarrito('${p.id}','${escapeHtml(color)}')">
       ${principal ? `<div class="prod-pick-badge">⭐ Principal</div>` : ""}
-      <div class="prod-pick-nombre">${escapeHtml(p.nombre)}</div>
+      <div class="prod-pick-nombre">${escapeHtml(nombreConColor(p.nombre, color))}</div>
       <div class="prod-pick-precio">${fmtMoney(p.precio)}</div>
-    </div>
-  `;
+      ${(!principal && color) ? `<div class="prod-pick-quedan">${agotado ? "sin piezas" : quedan + " pz"}</div>` : ""}
+    </div>`;
+  };
+  const tarjeta = (p, principal) => {
+    const cols = coloresDe(p);
+    if (!cols.length) return tarjetaColor(p, principal, "");
+    return cols.map(c => tarjetaColor(p, principal, c)).join("");
+  };
   cont.innerHTML =
     (principales.length ? `<div class="picker-section-label">⭐ Principales</div>` : "") +
     principales.map(p => tarjeta(p, true)).join("") +
@@ -784,39 +871,44 @@ function renderCatalogoPicker(filter) {
 
 // Aviso cuando se quiere vender más de lo que traes en la ruta. Los 4
 // principales van a consignación, así que nunca topan.
-function avisarSinExistencia(p) {
-  const s = stockDe(p);
+function avisarSinExistencia(p, color) {
+  const s = stockDe(p, color);
+  const cual = nombreConColor(p.nombre, color);
   toast(s === 0
-    ? "Ya no llevas piezas de " + p.nombre + "."
-    : "Solo llevas " + s + " pieza(s) de " + p.nombre + ".");
+    ? "Ya no llevas piezas de " + cual + "."
+    : "Solo llevas " + s + " pieza(s) de " + cual + ".");
 }
 
-function agregarAlCarrito(prodId) {
+function agregarAlCarrito(prodId, color) {
   const p = State.catalogo.find(x => x.id === prodId);
   if (!p) return;
-  if (disponibleParaVender(p) < 1) { avisarSinExistencia(p); return; }
-  const existing = State.cart.find(x => x.id === prodId);
+  color = color || "";
+  if (disponibleParaVender(p, color) < 1) { avisarSinExistencia(p, color); return; }
+  const existing = State.cart.find(x => x.id === prodId && (x.color || "") === color);
   if (existing) existing.cantidad += 1;
   // Se guarda el costo del momento para que el reporte de utilidad sea exacto
   // aunque el costo del producto cambie después.
-  else State.cart.push({ id: p.id, nombre: p.nombre, precio: p.precio, costo: normalizarCosto(p.costo), cantidad: 1 });
+  else State.cart.push({ id: p.id, color, nombre: nombreConColor(p.nombre, color),
+    precio: p.precio, costo: normalizarCosto(p.costo), cantidad: 1 });
   refrescarVenta();
 }
 
-function cambiarCantidad(prodId, delta) {
-  const item = State.cart.find(x => x.id === prodId);
+function cambiarCantidad(prodId, delta, color) {
+  color = color || "";
+  const item = State.cart.find(x => x.id === prodId && (x.color || "") === color);
   if (!item) return;
   if (delta > 0) {
     const p = State.catalogo.find(x => x.id === prodId);
-    if (p && disponibleParaVender(p) < delta) { avisarSinExistencia(p); return; }
+    if (p && disponibleParaVender(p, color) < delta) { avisarSinExistencia(p, color); return; }
   }
   item.cantidad += delta;
-  if (item.cantidad <= 0) State.cart = State.cart.filter(x => x.id !== prodId);
+  if (item.cantidad <= 0) State.cart = State.cart.filter(x => !(x.id === prodId && (x.color || "") === color));
   refrescarVenta();
 }
 
-function quitarDelCarrito(prodId) {
-  State.cart = State.cart.filter(x => x.id !== prodId);
+function quitarDelCarrito(prodId, color) {
+  color = color || "";
+  State.cart = State.cart.filter(x => !(x.id === prodId && (x.color || "") === color));
   refrescarVenta();
 }
 
@@ -841,12 +933,12 @@ function renderCarrito() {
           <div class="carrito-row-precio">${fmtMoney(it.precio)} c/u</div>
         </div>
         <div class="qty-controls">
-          <button class="qty-btn" onclick="cambiarCantidad('${it.id}',-1)">−</button>
+          <button class="qty-btn" onclick="cambiarCantidad('${it.id}',-1,'${escapeHtml(it.color || "")}')">−</button>
           <span class="qty-val">${it.cantidad}</span>
-          <button class="qty-btn" onclick="cambiarCantidad('${it.id}',1)">+</button>
+          <button class="qty-btn" onclick="cambiarCantidad('${it.id}',1,'${escapeHtml(it.color || "")}')">+</button>
         </div>
         <div class="carrito-row-importe">${fmtMoney(it.precio * it.cantidad)}</div>
-        <button class="carrito-row-del" onclick="quitarDelCarrito('${it.id}')">✕</button>
+        <button class="carrito-row-del" onclick="quitarDelCarrito('${it.id}','${escapeHtml(it.color || "")}')">✕</button>
       </div>
     `).join("");
 
@@ -910,15 +1002,18 @@ async function generarEImprimir() {
 // Se puede llamar varias veces sin descontar de más: solo mueve la diferencia
 // (y si quitas un producto que ya iba impreso, te regresa esas piezas).
 function conciliarStockDeLaVenta() {
-  const ids = new Set([...State.cart.map(i => i.id), ...Object.keys(State.cobrado)]);
-  for (const id of ids) {
+  const claves = new Set([...State.cart.map(i => claveStock(i.id, i.color)), ...Object.keys(State.cobrado)]);
+  for (const clave of claves) {
+    const corte = clave.indexOf("|");
+    const id = corte === -1 ? clave : clave.slice(0, corte);
+    const color = corte === -1 ? "" : clave.slice(corte + 1);
     const p = State.catalogo.find(x => x.id === id);
     if (!p || esProductoPrincipal(p.nombre)) continue; // los principales van a consignación
-    const delta = enCarrito(id) - (State.cobrado[id] || 0);
-    if (delta !== 0) State.stock[p.id] = Math.max(0, stockDe(p) - delta);
+    const delta = enCarrito(id, color) - (State.cobrado[clave] || 0);
+    if (delta !== 0) State.stock[clave] = Math.max(0, stockDe(p, color) - delta);
   }
   State.cobrado = {};
-  for (const it of State.cart) State.cobrado[it.id] = it.cantidad;
+  for (const it of State.cart) State.cobrado[claveStock(it.id, it.color)] = it.cantidad;
   persistStock();
 }
 
@@ -970,6 +1065,21 @@ function copiarTexto(texto) {
 
 function vitrinaCarrusel() { return document.getElementById("vitrina-carrusel"); }
 
+// Color que se está mostrando de cada producto en la Vitrina.
+const colorEnVitrina = {};
+function colorActual(p) {
+  const cols = coloresDe(p);
+  if (!cols.length) return "";
+  const elegido = colorEnVitrina[p.id];
+  if (elegido && cols.indexOf(elegido) !== -1) return elegido;
+  // Por defecto se muestra el primer color que sí tenga piezas.
+  return cols.find(c => disponibleParaVender(p, c) > 0) || cols[0];
+}
+function elegirColor(prodId, color) {
+  colorEnVitrina[prodId] = color;
+  actualizarContadoresVitrina();
+}
+
 function renderVitrina(irAlInicio) {
   const carrusel = vitrinaCarrusel();
   if (!carrusel) return;
@@ -987,6 +1097,9 @@ function renderVitrina(irAlInicio) {
 
   renderClienteBox();
   renderCarrito();
+  // Se pintan de una vez los contadores, los colores y el "te quedan N".
+  // Antes esto solo pasaba al tocar algo, y la primera vista salia en blanco.
+  actualizarContadoresVitrina();
 
   // Al volver a la Vitrina se conserva la diapositiva donde ibas; solo se
   // regresa al principio cuando empieza una venta nueva.
@@ -996,8 +1109,10 @@ function renderVitrina(irAlInicio) {
 }
 
 function slideDeProducto(p) {
-  const foto = fotoDe(p);
+  const color = colorActual(p);
+  const foto = fotoDe(p, color);
   const principal = esProductoPrincipal(p.nombre);
+  const cols = coloresDe(p);
   const usuario = normalizarCosto(p.precioUsuario);
   const ganancia = (usuario !== null && usuario > p.precio) ? usuario - p.precio : null;
   return `
@@ -1013,6 +1128,9 @@ function slideDeProducto(p) {
       <div class="vitrina-ganancia">${ganancia !== null
         ? `Tú lo vendes en <b>${fmtMoney(usuario)}</b> · ganas <b>${fmtMoney(ganancia)}</b>`
         : "&nbsp;"}</div>
+      ${cols.length ? `<div class="vitrina-colores" data-colores>${cols.map(c =>
+        `<button class="color-btn" data-color="${escapeHtml(c)}"
+           onclick="elegirColor('${p.id}','${escapeHtml(c)}')">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
       <div class="vitrina-qty">
         <button class="vitrina-qty-btn" data-menos onclick="marcarEnVitrina('${p.id}',-1)" aria-label="Quitar uno">−</button>
         <span class="vitrina-qty-val" data-qty>0</span>
@@ -1060,8 +1178,10 @@ function irAExistencias() {
 }
 
 function marcarEnVitrina(prodId, delta) {
-  if (delta > 0) agregarAlCarrito(prodId);
-  else cambiarCantidad(prodId, -1);
+  const p = State.catalogo.find(x => x.id === prodId);
+  const color = p ? colorActual(p) : "";
+  if (delta > 0) agregarAlCarrito(prodId, color);
+  else cambiarCantidad(prodId, -1, color);
 }
 
 // Actualiza los números SIN volver a construir el carrusel, para que no se
@@ -1072,23 +1192,41 @@ function actualizarContadoresVitrina() {
   carrusel.querySelectorAll("[data-slide-prod]").forEach(slide => {
     const p = State.catalogo.find(x => x.id === slide.dataset.slideProd);
     if (!p) return;
-    const cantidad = enCarrito(p.id);
+    const color = colorActual(p);
+    const cantidad = enCarrito(p.id, color);
     const val = slide.querySelector("[data-qty]");
     val.textContent = cantidad;
     val.classList.toggle("marcado", cantidad > 0);
     slide.querySelector("[data-menos]").disabled = cantidad === 0;
 
-    const quedan = disponibleParaVender(p);
+    const quedan = disponibleParaVender(p, color);
     slide.querySelector("[data-mas]").disabled = quedan < 1;
+
+    // Botones de color: se marca el elegido y se tacha el que ya se acabó.
+    const caja = slide.querySelector("[data-colores]");
+    if (caja) {
+      caja.querySelectorAll(".color-btn").forEach(b => {
+        const c = b.dataset.color;
+        b.classList.toggle("activo", c === color);
+        const hay = disponibleParaVender(p, c);
+        b.classList.toggle("sin", hay < 1);
+        const apartadas = enCarrito(p.id, c);
+        b.textContent = c + (apartadas > 0 ? " (" + apartadas + ")" : "");
+      });
+      const img = slide.querySelector(".vitrina-foto img");
+      const nueva = fotoDe(p, color);
+      if (img && nueva && img.getAttribute("src") !== nueva) img.setAttribute("src", nueva);
+    }
 
     const info = slide.querySelector("[data-stock]");
     if (esProductoPrincipal(p.nombre)) {
       info.textContent = "Siempre disponible · va a consignación";
       info.classList.remove("agotado");
     } else {
+      const deQue = color ? " de " + color : "";
       info.textContent = quedan > 0
-        ? "Te quedan " + quedan + (quedan === 1 ? " pieza" : " piezas")
-        : "Ya no llevas más de este";
+        ? "Te quedan " + quedan + (quedan === 1 ? " pieza" : " piezas") + deQue
+        : "Ya no llevas" + (color ? " " + color : " más de este");
       info.classList.toggle("agotado", quedan < 1);
     }
   });
@@ -1443,32 +1581,42 @@ function renderExistencias(filtro) {
     cont.innerHTML = `<div class="empty-hint">Sin productos que coincidan.</div>`;
     return;
   }
-  cont.innerHTML = lista.map(p => {
+  // Cada color lleva su propio renglón con su propia cuenta de piezas.
+  const renglones = [];
+  for (const p of lista) {
+    const cols = coloresDe(p);
+    if (cols.length && !esProductoPrincipal(p.nombre)) {
+      for (const c of cols) renglones.push([p, c]);
+    } else {
+      renglones.push([p, ""]);
+    }
+  }
+  cont.innerHTML = renglones.map(([p, color]) => {
     const principal = esProductoPrincipal(p.nombre);
-    const foto = fotoDe(p);
-    const piezas = Number(State.stock[p.id]) || 0;
+    const foto = fotoDe(p, color);
+    const piezas = Number(State.stock[claveStock(p.id, color)]) || 0;
     return `
       <div class="stock-item">
         <div class="stock-foto">${foto
           ? `<img src="${escapeHtml(foto)}" alt="" onerror="this.remove()">`
           : "📦"}</div>
         <div>
-          <div class="stock-nombre">${escapeHtml(p.nombre)}</div>
+          <div class="stock-nombre">${escapeHtml(nombreConColor(p.nombre, color))}</div>
           <div class="stock-fila">
             <span class="stock-precio">${fmtMoney(p.precio)}</span>
             ${principal
               ? `<span class="stock-consigna">⭐ CONSIGNACIÓN</span>`
               : `<div class="stock-controles">
-                   <button class="qty-btn" onclick="ajustarStock('${p.id}',-1)">−</button>
-                   <input type="number" class="stock-input" data-prod="${p.id}" min="0" step="1"
-                     value="${piezas}" onchange="ponerStock('${p.id}',this.value)">
-                   <button class="qty-btn" onclick="ajustarStock('${p.id}',1)">+</button>
+                   <button class="qty-btn" onclick="ajustarStock('${p.id}',-1,'${escapeHtml(color)}')">−</button>
+                   <input type="number" class="stock-input" data-prod="${escapeHtml(claveStock(p.id, color))}" min="0" step="1"
+                     value="${piezas}" onchange="ponerStock('${p.id}',this.value,'${escapeHtml(color)}')">
+                   <button class="qty-btn" onclick="ajustarStock('${p.id}',1,'${escapeHtml(color)}')">+</button>
                  </div>`}
             <label class="stock-camara" title="Ponerle foto">📷
-              <input type="file" accept="image/*" style="display:none" onchange="subirFoto('${p.id}',this)">
+              <input type="file" accept="image/*" style="display:none" onchange="subirFoto('${escapeHtml(claveStock(p.id, color))}',this)">
             </label>
-            ${State.fotos[p.id]
-              ? `<button class="stock-camara" onclick="quitarFoto('${p.id}')" title="Quitar la foto que le pusiste">✕</button>`
+            ${State.fotos[claveStock(p.id, color)]
+              ? `<button class="stock-camara" onclick="quitarFoto('${escapeHtml(claveStock(p.id, color))}')" title="Quitar la foto que le pusiste">✕</button>`
               : ""}
           </div>
         </div>
@@ -1478,16 +1626,18 @@ function renderExistencias(filtro) {
 
 // Se actualiza solo el número de ese renglón: repintar la lista completa haría
 // que se cerrara el teclado y se perdiera el lugar donde vas.
-function ajustarStock(id, delta) {
-  fijarStock(id, (Number(State.stock[id]) || 0) + delta);
-  const input = document.querySelector(`.stock-input[data-prod="${id}"]`);
-  if (input) input.value = State.stock[id];
+function ajustarStock(id, delta, color) {
+  const clave = claveStock(id, color);
+  fijarStock(id, (Number(State.stock[clave]) || 0) + delta, color);
+  const input = document.querySelector(`.stock-input[data-prod="${clave}"]`);
+  if (input) input.value = State.stock[clave];
 }
 
-function ponerStock(id, valor) {
-  fijarStock(id, valor);
-  const input = document.querySelector(`.stock-input[data-prod="${id}"]`);
-  if (input) input.value = State.stock[id]; // deja el número limpio (sin decimales ni negativos)
+function ponerStock(id, valor, color) {
+  const clave = claveStock(id, color);
+  fijarStock(id, valor, color);
+  const input = document.querySelector(`.stock-input[data-prod="${clave}"]`);
+  if (input) input.value = State.stock[clave]; // deja el número limpio
 }
 
 function ponerStockATodos() {
@@ -1497,7 +1647,11 @@ function ponerStockATodos() {
   if (!Number.isFinite(n)) { toast("Escribe un número válido."); return; }
   const novedosos = State.catalogo.filter(p => !esProductoPrincipal(p.nombre));
   if (!confirm(`¿Poner ${n} pieza(s) a los ${novedosos.length} productos novedosos?\n\nEsto reemplaza lo que tengas capturado en cada uno.`)) return;
-  novedosos.forEach(p => { State.stock[p.id] = n; });
+  novedosos.forEach(p => {
+    const cols = coloresDe(p);
+    if (cols.length) cols.forEach(c => { State.stock[claveStock(p.id, c)] = n; });
+    else State.stock[p.id] = n;
+  });
   persistStock();
   input.value = "";
   renderExistencias();

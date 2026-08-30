@@ -72,4 +72,59 @@ const FOTOS_POR_PALABRAS = [
   { palabras: ["bocina", "bicicleta"], archivo: "sv01.webp" },
 ];
 
+
+// Foto de cada COLOR. La llave es el código del producto (o una palabra de
+// su nombre, para los que no traen código). Si un color no tiene su foto,
+// se usa la foto normal del producto.
+const FOTOS_POR_COLOR = {
+  "BOC060": {
+    "Negro": "boc060-negro.webp",
+    "Rojo": "boc060-rojo.webp"
+  },
+  "BOC062": {
+    "Negro": "boc062-negro.webp",
+    "Rojo": "boc062-rojo.webp"
+  },
+  "BOC242": {
+    "Negro": "boc242-negro.webp",
+    "Rojo": "boc242-rojo.webp"
+  },
+  "BOC243": {
+    "Negro": "boc243-negro.webp",
+    "Rojo": "boc243-rojo.webp"
+  },
+  "BOC244": {
+    "Negro": "boc244-negro.webp",
+    "Rojo": "boc244-rojo.webp"
+  },
+  "AC01": {
+    "Negro": "ac01-negro.webp",
+    "Blanco": "ac01-blanco.webp",
+    "Morado": "ac01-morado.webp"
+  },
+  "AUT205": {
+    "Negro": "aut205-negro.webp",
+    "Blanco": "aut205-blanco.webp"
+  },
+  "EZ-165": {
+    "Negro": "ez165-negro.webp",
+    "Rojo": "ez165-rojo.webp",
+    "Verde": "ez165-verde.webp",
+    "Azul": "ez165-azul.webp"
+  },
+  "gtide": {
+    "Negro": "gtide-negro.webp",
+    "Blanco": "gtide-blanco.webp",
+    "Verde": "gtide-verde.webp",
+    "Azul": "gtide-azul.webp",
+    "Morado": "gtide-morado.webp"
+  },
+  "bicicleta": {
+    "Negro": "sv01-negro.webp",
+    "Blanco": "sv01-blanco.webp",
+    "Rojo": "sv01-rojo.webp",
+    "Azul": "sv01-azul.webp"
+  }
+};
+
 const CARPETA_FOTOS = "productos/";

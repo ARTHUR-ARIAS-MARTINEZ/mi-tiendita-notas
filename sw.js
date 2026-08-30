@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v32";
+const CACHE = "mte-notas-v33";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -79,6 +79,35 @@ const EXTRAS = [
   "productos/tb6323.webp",
   "productos/hdmi3m.webp",
   "productos/tiraled.webp",
+  // Fotos de cada color
+  "productos/ac01-blanco.webp",
+  "productos/ac01-morado.webp",
+  "productos/ac01-negro.webp",
+  "productos/aut205-blanco.webp",
+  "productos/aut205-negro.webp",
+  "productos/boc060-negro.webp",
+  "productos/boc060-rojo.webp",
+  "productos/boc062-negro.webp",
+  "productos/boc062-rojo.webp",
+  "productos/boc242-negro.webp",
+  "productos/boc242-rojo.webp",
+  "productos/boc243-negro.webp",
+  "productos/boc243-rojo.webp",
+  "productos/boc244-negro.webp",
+  "productos/boc244-rojo.webp",
+  "productos/ez165-azul.webp",
+  "productos/ez165-negro.webp",
+  "productos/ez165-rojo.webp",
+  "productos/ez165-verde.webp",
+  "productos/gtide-azul.webp",
+  "productos/gtide-blanco.webp",
+  "productos/gtide-morado.webp",
+  "productos/gtide-negro.webp",
+  "productos/gtide-verde.webp",
+  "productos/sv01-azul.webp",
+  "productos/sv01-blanco.webp",
+  "productos/sv01-negro.webp",
+  "productos/sv01-rojo.webp",
 ];
 
 self.addEventListener("install", (ev) => {

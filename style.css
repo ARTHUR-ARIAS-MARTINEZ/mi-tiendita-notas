@@ -242,6 +242,15 @@ td{padding:8px;border-top:1px solid var(--border)}
 .vitrina-qty-btn:disabled{opacity:.25;cursor:not-allowed}
 .vitrina-qty-val{font-family:var(--font-h);font-weight:800;font-size:2rem;min-width:60px;text-align:center;color:var(--muted)}
 .vitrina-qty-val.marcado{color:var(--green)}
+/* Botones de color en la Vitrina */
+.vitrina-colores{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px}
+.color-btn{padding:6px 12px;border-radius:999px;border:1px solid var(--border);
+  background:rgba(255,255,255,.05);color:var(--text);font-family:inherit;font-size:.75rem;
+  font-weight:600;cursor:pointer;line-height:1.2}
+.color-btn.activo{background:rgba(43,255,15,.14);border-color:var(--green);color:var(--green)}
+.color-btn.sin{opacity:.35;text-decoration:line-through}
+.prod-pick-agotado{opacity:.45}
+.prod-pick-quedan{font-size:.6rem;color:var(--muted);margin-top:2px}
 .vitrina-stock{font-size:.72rem;color:var(--muted);text-align:center;margin:6px 0 4px}
 .vitrina-stock.agotado{color:var(--red)}
 
