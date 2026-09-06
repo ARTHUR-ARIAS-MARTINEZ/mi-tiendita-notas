@@ -3482,29 +3482,6 @@ function adelantarFotosDeLaVitrina() {
   ]);
 }
 
-// Red de seguridad: si el guardado que hace el service worker al instalarse
-// quedó incompleto (se fue la señal a media descarga), aquí se completa. Corre
-// callado, después de que ya están listas las fotos que se van a exhibir.
-// El botón de Ajustes sigue estando por si lo quieres forzar y ver el detalle.
-function guardarTodoEnSegundoPlano() {
-  if (!("serviceWorker" in navigator)) return;
-  const arrancar = () => {
-    if (!navigator.onLine) return; // sin señal no tiene caso; se reintenta al volver
-    navigator.serviceWorker.ready.then((reg) => {
-      const destino = navigator.serviceWorker.controller || reg.active;
-      if (destino) destino.postMessage({ type: "GUARDAR_TODO" });
-    }).catch(() => { /* si falla, queda el botón de Ajustes */ });
-  };
-  const enCuantoHayaCalma = () => {
-    if (window.requestIdleCallback) requestIdleCallback(arrancar, { timeout: 4000 });
-    else arrancar();
-  };
-  // El orden importa: primero las fotos que se van a exhibir, luego el resto.
-  adelantarFotosDeLaVitrina().then(enCuantoHayaCalma, enCuantoHayaCalma);
-  // Si abriste sin señal, se guarda en cuanto vuelva.
-  window.addEventListener("online", () => setTimeout(enCuantoHayaCalma, 3000), { once: true });
-}
-
 async function guardarTodoOffline() {
   const caja = document.getElementById("estado-offline");
   const btn = document.getElementById("btn-guardar-offline");
@@ -3669,7 +3646,8 @@ async function initApp() {
 
   if (typeof nubeArrancar === "function") nubeArrancar();
 
-  guardarTodoEnSegundoPlano();
+  // Las fotos de lo que hoy se exhibe, primero que nada.
+  adelantarFotosDeLaVitrina();
 
   showScreen("nota");
 

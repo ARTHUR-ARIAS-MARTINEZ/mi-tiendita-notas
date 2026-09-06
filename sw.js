@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v48";
+const CACHE = "mte-notas-v49";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -163,24 +163,25 @@ self.addEventListener("install", (ev) => {
     const cache = await caches.open(CACHE);
     // Esenciales: TODOS o falla (así nunca queda una instalación incompleta).
     await cache.addAll(CORE);
-    // La app ya puede usarse en este punto: se toma el control de una vez, sin
-    // esperar a las fotos.
+    // Extras: mejor esfuerzo, TODOS A LA VEZ (un fallo no tira la instalación).
+    //
+    // Esto se tocó y se midió; queda documentado para no volver a intentarlo:
+    //   1) De 4 en 4, para no acaparar la conexión: salió PEOR. El guardado se
+    //      alarga y compite más tiempo con lo que se está viendo.
+    //   2) Sacarlo de aquí y dispararlo desde la app con un mensaje: salió MUY
+    //      mal. Quedaron 24 archivos de casi 100, porque el celular apaga el
+    //      service worker en cuanto lo ve desocupado y la descarga se corta.
+    //      Eso deja la app sin fotos al perder señal, que es inaceptable.
+    // Todas a la vez es lo más rápido y es lo que garantiza que quede completa.
+    // Lo que el cliente ve primero se resuelve del otro lado: la app baja antes
+    // las fotos de lo que hoy se exhibe (adelantarFotosDeLaVitrina en app.js).
+    await Promise.all(EXTRAS.map(async (ruta) => {
+      try {
+        const resp = await fetch(ruta, { cache: "reload" });
+        if (resp && resp.ok) await cache.put(ruta, resp);
+      } catch (e) { /* se intentará solo cuando se use */ }
+    }));
     await self.skipWaiting();
-
-    // Y AHORA las fotos y las fuentes (~3.5 MB). Van aquí dentro a propósito:
-    // el navegador se compromete a dejar corriendo esta descarga aunque cierres
-    // la app, y eso es lo que garantiza que puedas trabajar sin internet.
-    //
-    // (Se intentó sacarlas de aquí y dispararlas desde la app con un mensaje,
-    // para que no le quitaran conexión a la primera vista. Se midió y salió
-    // mal: solo quedaron guardados 24 archivos de casi 100, porque el celular
-    // apaga el service worker en cuanto lo ve desocupado y la descarga se
-    // cortaba a medias. La app se habría quedado sin fotos al perder señal.)
-    //
-    // De 6 en 6 para no acaparar del todo la conexión. La prioridad de lo que
-    // el cliente está viendo se resuelve del otro lado: la app baja primero las
-    // fotos de lo que hoy se exhibe (ver adelantarFotosDeLaVitrina en app.js).
-    await guardarPorTandas(cache, EXTRAS, 6);
   })());
 });
 
@@ -198,9 +199,8 @@ self.addEventListener("activate", (ev) => {
 self.addEventListener("message", (ev) => {
   if (ev.data && ev.data.type === "SKIP_WAITING") self.skipWaiting();
 
-  // La app pide guardar TODO, para poder usarse sin internet. Esto ya NO corre
-  // al instalar: lo dispara la app cuando la pantalla ya está lista, o el botón
-  // de Ajustes. De 4 en 4 y se reporta cuántos quedaron y cuáles no.
+  // El botón de Ajustes pide guardar TODO otra vez, por si la instalación quedó
+  // a medias (se fue la señal). De 4 en 4 y se reporta cuántos quedaron.
   if (ev.data && ev.data.type === "GUARDAR_TODO") {
     ev.waitUntil((async () => {
       const cache = await caches.open(CACHE);
