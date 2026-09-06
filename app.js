@@ -3482,13 +3482,10 @@ function adelantarFotosDeLaVitrina() {
   ]);
 }
 
-// Guarda la app completa en el celular SIN estorbar. Antes esto lo hacía el
-// service worker al instalarse, pero se midió que acaparaba la conexión y las
-// fotos de la Vitrina salían en blanco los primeros segundos. Ahora corre
-// después de que ya están listas las fotos que se van a exhibir, y espera a
-// que el navegador esté sin trabajo.
-// No avisa nada: es callado y de fondo. El botón de Ajustes sigue estando por
-// si lo quieres forzar y ver el resultado.
+// Red de seguridad: si el guardado que hace el service worker al instalarse
+// quedó incompleto (se fue la señal a media descarga), aquí se completa. Corre
+// callado, después de que ya están listas las fotos que se van a exhibir.
+// El botón de Ajustes sigue estando por si lo quieres forzar y ver el detalle.
 function guardarTodoEnSegundoPlano() {
   if (!("serviceWorker" in navigator)) return;
   const arrancar = () => {

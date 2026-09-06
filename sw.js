@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v47";
+const CACHE = "mte-notas-v48";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -163,13 +163,24 @@ self.addEventListener("install", (ev) => {
     const cache = await caches.open(CACHE);
     // Esenciales: TODOS o falla (así nunca queda una instalación incompleta).
     await cache.addAll(CORE);
-    // Los EXTRAS (fotos y fuentes, ~3.5 MB) NO se bajan aquí a propósito.
-    // Se medió: bajarlos durante la instalación acapara la conexión y hace que
-    // las fotos de la Vitrina salgan en blanco los primeros segundos, justo
-    // cuando le estás pasando el celular al cliente. Primero abre la app; el
-    // guardado para usarla sin internet lo dispara la propia app unos segundos
-    // después (ver guardarTodoEnSegundoPlano en app.js) o el botón de Ajustes.
+    // La app ya puede usarse en este punto: se toma el control de una vez, sin
+    // esperar a las fotos.
     await self.skipWaiting();
+
+    // Y AHORA las fotos y las fuentes (~3.5 MB). Van aquí dentro a propósito:
+    // el navegador se compromete a dejar corriendo esta descarga aunque cierres
+    // la app, y eso es lo que garantiza que puedas trabajar sin internet.
+    //
+    // (Se intentó sacarlas de aquí y dispararlas desde la app con un mensaje,
+    // para que no le quitaran conexión a la primera vista. Se midió y salió
+    // mal: solo quedaron guardados 24 archivos de casi 100, porque el celular
+    // apaga el service worker en cuanto lo ve desocupado y la descarga se
+    // cortaba a medias. La app se habría quedado sin fotos al perder señal.)
+    //
+    // De 6 en 6 para no acaparar del todo la conexión. La prioridad de lo que
+    // el cliente está viendo se resuelve del otro lado: la app baja primero las
+    // fotos de lo que hoy se exhibe (ver adelantarFotosDeLaVitrina en app.js).
+    await guardarPorTandas(cache, EXTRAS, 6);
   })());
 });
 
