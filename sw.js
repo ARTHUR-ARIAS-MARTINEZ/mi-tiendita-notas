@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v43";
+const CACHE = "mte-notas-v44";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -140,18 +140,35 @@ const EXTRAS = [
   "productos/inpods12-amarillo.webp",
 ];
 
+// Guarda una lista de archivos de poquitos en poquitos, para no acaparar la
+// conexión. Devuelve cuántos se guardaron y cuáles no se pudieron.
+async function guardarPorTandas(cache, rutas, deCuantosEnCuantos) {
+  let guardados = 0;
+  const fallaron = [];
+  for (let i = 0; i < rutas.length; i += deCuantosEnCuantos) {
+    const tanda = rutas.slice(i, i + deCuantosEnCuantos);
+    await Promise.all(tanda.map(async (ruta) => {
+      try {
+        const resp = await fetch(ruta, { cache: "reload" });
+        if (resp && resp.ok) { await cache.put(ruta, resp); guardados++; }
+        else fallaron.push(ruta);
+      } catch (e) { fallaron.push(ruta); }
+    }));
+  }
+  return { guardados, fallaron };
+}
+
 self.addEventListener("install", (ev) => {
   ev.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     // Esenciales: TODOS o falla (así nunca queda una instalación incompleta).
     await cache.addAll(CORE);
-    // Extras: mejor esfuerzo, uno por uno (un fallo no tira la instalación).
-    await Promise.all(EXTRAS.map(async (ruta) => {
-      try {
-        const resp = await fetch(ruta, { cache: "reload" });
-        if (resp && resp.ok) await cache.put(ruta, resp);
-      } catch (e) { /* se intentará solo cuando se use */ }
-    }));
+    // Extras: mejor esfuerzo. Van EN TANDAS CHICAS a propósito.
+    // Antes se pedían las ~90 de un solo golpe y eso saturaba la conexión: la
+    // primera vez que abrías la app, las fotos de la Vitrina salían en blanco
+    // unos segundos porque competían con esta descarga. De 4 en 4 tarda casi
+    // lo mismo en total y deja pasar lo que el cliente está viendo.
+    await guardarPorTandas(cache, EXTRAS, 4);
     await self.skipWaiting();
   })());
 });
@@ -171,20 +188,12 @@ self.addEventListener("message", (ev) => {
   if (ev.data && ev.data.type === "SKIP_WAITING") self.skipWaiting();
 
   // La app pide guardar TODO de una vez, para poder usarse sin internet.
-  // Se van guardando uno por uno y se reporta cuántos quedaron y cuáles no.
+  // De 4 en 4 y se reporta cuántos quedaron y cuáles no.
   if (ev.data && ev.data.type === "GUARDAR_TODO") {
     ev.waitUntil((async () => {
       const cache = await caches.open(CACHE);
       const todos = CORE.concat(EXTRAS);
-      let guardados = 0;
-      const fallaron = [];
-      for (const ruta of todos) {
-        try {
-          const resp = await fetch(ruta, { cache: "reload" });
-          if (resp && resp.ok) { await cache.put(ruta, resp); guardados++; }
-          else fallaron.push(ruta);
-        } catch (e) { fallaron.push(ruta); }
-      }
+      const { guardados, fallaron } = await guardarPorTandas(cache, todos, 4);
       const enCaja = (await cache.keys()).length;
       const avisar = (c) => c.postMessage({
         type: "GUARDADO", guardados, total: todos.length, enCaja,
