@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v49";
+const CACHE = "mte-notas-v50";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -158,29 +158,19 @@ async function guardarPorTandas(cache, rutas, deCuantosEnCuantos) {
   return { guardados, fallaron };
 }
 
+// LA INSTALACIÓN SOLO BAJA LO ESENCIAL, y por eso termina en segundos.
+//
+// Esto es lo importante y costó tres intentos hallarlo: mientras el service
+// worker está "instalando" NO controla la app, o sea que la app NO sirve sin
+// internet. Si aquí adentro se bajan también las fotos (3.5 MB), la
+// instalación se queda atorada minutos —medido: 20 archivos en 80 segundos y
+// seguía— y en todo ese rato, si se iba la señal, la app no abría.
+// Las fotos se bajan en "activate", que es después de tomar el control.
 self.addEventListener("install", (ev) => {
   ev.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     // Esenciales: TODOS o falla (así nunca queda una instalación incompleta).
     await cache.addAll(CORE);
-    // Extras: mejor esfuerzo, TODOS A LA VEZ (un fallo no tira la instalación).
-    //
-    // Esto se tocó y se midió; queda documentado para no volver a intentarlo:
-    //   1) De 4 en 4, para no acaparar la conexión: salió PEOR. El guardado se
-    //      alarga y compite más tiempo con lo que se está viendo.
-    //   2) Sacarlo de aquí y dispararlo desde la app con un mensaje: salió MUY
-    //      mal. Quedaron 24 archivos de casi 100, porque el celular apaga el
-    //      service worker en cuanto lo ve desocupado y la descarga se corta.
-    //      Eso deja la app sin fotos al perder señal, que es inaceptable.
-    // Todas a la vez es lo más rápido y es lo que garantiza que quede completa.
-    // Lo que el cliente ve primero se resuelve del otro lado: la app baja antes
-    // las fotos de lo que hoy se exhibe (adelantarFotosDeLaVitrina en app.js).
-    await Promise.all(EXTRAS.map(async (ruta) => {
-      try {
-        const resp = await fetch(ruta, { cache: "reload" });
-        if (resp && resp.ok) await cache.put(ruta, resp);
-      } catch (e) { /* se intentará solo cuando se use */ }
-    }));
     await self.skipWaiting();
   })());
 });
@@ -192,6 +182,19 @@ self.addEventListener("activate", (ev) => {
     const keys = await caches.keys();
     await Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
     await self.clients.claim();
+
+    // A PARTIR DE AQUÍ la app ya funciona sin internet. Ahora sí, las fotos y
+    // las fuentes. Van dentro de este waitUntil a propósito: el navegador se
+    // compromete a dejar corriendo la descarga aunque cierres la app, que es
+    // lo que garantiza que puedas trabajar sin señal en la ruta. Si alguna
+    // falla, se guarda sola la primera vez que se vea con internet.
+    const cache = await caches.open(CACHE);
+    await Promise.all(EXTRAS.map(async (ruta) => {
+      try {
+        const resp = await fetch(ruta, { cache: "reload" });
+        if (resp && resp.ok) await cache.put(ruta, resp);
+      } catch (e) { /* se intentará solo cuando se use */ }
+    }));
   })());
 });
 
