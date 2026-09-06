@@ -3455,10 +3455,38 @@ async function revisarOffline() {
   }
 }
 
+// PRIMERO lo que el cliente va a ver. Baja las fotos de lo que hoy se exhibe
+// en la Vitrina (lo que traes con piezas), que son unas pocas, y hasta que
+// esas terminen se deja guardar el resto del catálogo.
+// Sin esto pasaba lo siguiente, medido: el celular bajaba las ~90 fotos en el
+// orden de la lista, y las de hasta abajo (las más nuevas) llegaban al final;
+// si el cliente deslizaba hasta ellas, veía el recuadro vacío.
+function adelantarFotosDeLaVitrina() {
+  let urls = [];
+  try {
+    for (const d of diapositivasDeVitrina()) {
+      const u = fotoDe(d.p, d.color);
+      if (u && urls.indexOf(u) === -1) urls.push(u);
+    }
+  } catch (e) { urls = []; }
+  const bajarUna = (u) => new Promise((listo) => {
+    const im = new Image();
+    im.onload = im.onerror = listo;
+    im.src = u;
+  });
+  // Con tope de tiempo: si la señal está muy mala no se queda esperando para
+  // siempre y de todos modos se pasa a guardar el resto.
+  return Promise.race([
+    Promise.all(urls.map(bajarUna)),
+    new Promise((listo) => setTimeout(listo, 20000)),
+  ]);
+}
+
 // Guarda la app completa en el celular SIN estorbar. Antes esto lo hacía el
 // service worker al instalarse, pero se midió que acaparaba la conexión y las
-// fotos de la Vitrina salían en blanco los primeros segundos. Ahora se espera
-// a que la pantalla ya esté pintada y a que el navegador esté sin trabajo.
+// fotos de la Vitrina salían en blanco los primeros segundos. Ahora corre
+// después de que ya están listas las fotos que se van a exhibir, y espera a
+// que el navegador esté sin trabajo.
 // No avisa nada: es callado y de fondo. El botón de Ajustes sigue estando por
 // si lo quieres forzar y ver el resultado.
 function guardarTodoEnSegundoPlano() {
@@ -3474,7 +3502,8 @@ function guardarTodoEnSegundoPlano() {
     if (window.requestIdleCallback) requestIdleCallback(arrancar, { timeout: 4000 });
     else arrancar();
   };
-  setTimeout(enCuantoHayaCalma, 9000);
+  // El orden importa: primero las fotos que se van a exhibir, luego el resto.
+  adelantarFotosDeLaVitrina().then(enCuantoHayaCalma, enCuantoHayaCalma);
   // Si abriste sin señal, se guarda en cuanto vuelva.
   window.addEventListener("online", () => setTimeout(enCuantoHayaCalma, 3000), { once: true });
 }
