@@ -137,11 +137,6 @@ input:focus,textarea:focus{border-color:var(--border-accent)}
 .rot-prov-nombre{font-family:var(--font-h);font-weight:700;font-size:.85rem}
 .rot-prov-sub{font-size:.68rem;color:var(--muted);margin-top:2px}
 
-/* Encabezado de sección colapsable (ej. Catálogo de productos) */
-.collapse-header{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:none;border:none;color:var(--text);font-family:var(--font-h,inherit);font-size:.98rem;font-weight:600;cursor:pointer;padding:0}
-.collapse-caret{color:var(--muted);transition:transform .2s;font-size:.8rem}
-.collapse-header[aria-expanded="true"] .collapse-caret{transform:rotate(180deg)}
-
 .prod-nuevo-form{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)}
 .prod-nuevo-precios{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px}
 .section-sep{border-top:1px dashed var(--border);margin:16px 0}
@@ -313,6 +308,66 @@ td{padding:8px;border-top:1px solid var(--border)}
 .vitrina-pos{flex:1;text-align:center;min-width:0}
 #vitrina-pos-texto{font-size:.72rem;color:var(--muted)}
 .vitrina-total-mini{font-family:var(--font-h);font-weight:700;font-size:.85rem;color:var(--green);min-height:1.1em}
+
+/* ---------- Ajustes: lista de renglones ----------
+   La pantalla era una torre de recuadros con párrafos. Ahora es una lista:
+   un renglón por cosa, y la explicación escondida detrás del botón (i). */
+.aj-lista{display:flex;flex-direction:column;gap:8px}
+.aj{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.aj-head{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px 14px;cursor:pointer;user-select:none;
+  -webkit-tap-highlight-color:transparent
+}
+.aj-head:active{background:rgba(255,255,255,.04)}
+.aj-tit{
+  flex:1;min-width:0;font-family:var(--font-h);font-weight:600;font-size:.95rem;
+  color:var(--text);line-height:1.25
+}
+/* El estado baja a su propio renglón dentro del mismo bloque: así un aviso
+   largo (por ejemplo "conéctate un momento") se lee entero y no aprieta el
+   título ni se corta con puntos suspensivos. */
+.aj-estado{
+  flex:0 0 100%;order:10;
+  font-size:.7rem;line-height:1.4;color:var(--muted)
+}
+.aj-estado:empty{display:none}
+.aj-estado.listo{color:var(--green)}
+.aj-estado.falta{color:#ffb703}
+/* La bolita de información: chiquita, discreta, y solo cuando se pide. */
+.aj-i{
+  flex:0 0 auto;width:22px;height:22px;border-radius:50%;
+  border:1px solid var(--border);background:rgba(255,255,255,.05);
+  color:var(--muted);font-family:var(--font-h);font-weight:700;font-size:.72rem;
+  line-height:1;cursor:pointer;padding:0
+}
+.aj-i.activo{background:rgba(43,255,15,.14);border-color:var(--green);color:var(--green)}
+.aj-caret{flex:0 0 auto;color:var(--muted);font-size:.8rem;transition:transform .18s ease}
+.aj-head[aria-expanded="true"] .aj-caret{transform:rotate(180deg)}
+.aj-info{
+  padding:0 14px 12px;font-size:.76rem;line-height:1.5;color:var(--muted);
+  border-top:1px dashed var(--border);padding-top:10px;margin:0 0 0
+}
+.aj-info b{color:var(--text);font-weight:600}
+.aj-body{padding:0 14px 14px}
+
+/* Renglón que solo es un enlace, sin desplegar nada. */
+.aj-link{
+  display:flex;align-items:center;gap:10px;padding:14px;
+  text-decoration:none;color:var(--text)
+}
+.aj-link:active{background:rgba(255,255,255,.04)}
+
+/* Renglón con interruptor: título, (i) y switch en la misma línea. */
+.aj-switch{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px}
+.aj-switch .aj-info{flex:0 0 100%;padding:10px 0 0;margin-top:8px}
+
+/* Lo que Arthur no usa en la ruta, guardado al fondo. */
+.aj-guardadas{opacity:.72}
+.aj-guardadas .aj-tit{font-weight:500}
+.aj-sub{padding:12px 0;border-bottom:1px solid var(--border)}
+.aj-sub:last-child{border-bottom:none;padding-bottom:0}
+.aj-sub-tit{font-family:var(--font-h);font-weight:600;font-size:.85rem;margin-bottom:4px}
 
 /* ---------- Ajustes › Existencias ---------- */
 .stock-masivo{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}

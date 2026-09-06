@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v39 · 20 ago 2026 · Nube";
+const APP_VERSION = "v51 · 6 sep 2026 · Ajustes en lista";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1771,7 +1771,6 @@ function renderAjustes() {
   renderProductosAjustes();
   renderExistencias();
   revisarOffline();
-  revisarDatos();
   if (typeof nubePintarEstado === "function") nubePintarEstado();
   document.getElementById("printer-name").textContent = Printer.isConnected()
     ? "Conectada"
@@ -1788,35 +1787,58 @@ function guardarNegocio(ev) {
   toast("Datos del negocio guardados.");
 }
 
-// Muestra/oculta el catálogo de productos (viene colapsado para no llenar Ajustes).
-function toggleCatalogo() {
-  const btn = document.getElementById("btn-toggle-catalogo");
-  const panel = document.getElementById("catalogo-panel");
-  if (!btn || !panel) return;
-  const abrir = panel.classList.contains("hidden");
+// ---------- Ajustes: los renglones que se abren y las bolitas de (i) ----------
+// Ajustes es una lista. Cada renglón abre su panel al tocarlo, y el texto de
+// "para qué sirve" solo sale cuando se pica la bolita de (i). Todo se maneja
+// desde aquí, con un solo escuchador, para no repetir código por tarjeta.
+
+function abrirRenglonAjustes(head, abrir) {
+  const panel = document.getElementById(head.dataset.panel);
+  if (!panel) return;
+  if (abrir === undefined) abrir = panel.classList.contains("hidden");
   panel.classList.toggle("hidden", !abrir);
-  btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+  head.setAttribute("aria-expanded", abrir ? "true" : "false");
+  // El catálogo y las existencias se arman al vuelo: si no se repintan al
+  // abrirlos, la primera vez salen en blanco.
+  if (abrir && head.dataset.panel === "existencias-panel") renderExistencias();
+  if (abrir && head.dataset.panel === "catalogo-panel") renderProductosAjustes();
 }
 
-// ---------- Ajustes › Existencias para la Vitrina ----------
-
-function toggleExistencias() {
-  const btn = document.getElementById("btn-toggle-existencias");
-  const panel = document.getElementById("existencias-panel");
-  if (!btn || !panel) return;
-  const abrir = panel.classList.contains("hidden");
-  panel.classList.toggle("hidden", !abrir);
-  btn.setAttribute("aria-expanded", abrir ? "true" : "false");
+function conectarAjustes() {
+  const pantalla = document.getElementById("screen-ajustes");
+  if (!pantalla) return;
+  pantalla.addEventListener("click", (ev) => {
+    // La bolita de información manda sobre el renglón: si se toca, solo
+    // muestra u oculta la explicación y no abre el panel.
+    const info = ev.target.closest(".aj-i");
+    if (info) {
+      ev.stopPropagation();
+      const caja = info.closest(".aj").querySelector(".aj-info");
+      if (!caja) return;
+      const mostrar = caja.classList.contains("hidden");
+      caja.classList.toggle("hidden", !mostrar);
+      info.classList.toggle("activo", mostrar);
+      return;
+    }
+    const head = ev.target.closest(".aj-head");
+    if (head && head.dataset.panel) abrirRenglonAjustes(head);
+  });
+  // Mismo comportamiento con el teclado, para que sea navegable.
+  pantalla.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const head = ev.target.closest(".aj-head");
+    if (!head || !head.dataset.panel) return;
+    ev.preventDefault();
+    abrirRenglonAjustes(head);
+  });
 }
 
 // Se usa desde la Vitrina cuando todavía no hay nada cargado.
 function abrirPanelExistencias() {
-  const panel = document.getElementById("existencias-panel");
-  const btn = document.getElementById("btn-toggle-existencias");
-  if (!panel || !btn) return;
-  panel.classList.remove("hidden");
-  btn.setAttribute("aria-expanded", "true");
-  btn.scrollIntoView({ behavior: "smooth", block: "start" });
+  const head = document.getElementById("btn-toggle-existencias");
+  if (!head) return;
+  abrirRenglonAjustes(head, true);
+  head.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderExistencias(filtro) {
@@ -3571,8 +3593,7 @@ async function initApp() {
   document.getElementById("btn-exportar-clientes").addEventListener("click", exportarClientesCSV);
   const btnBitacora = document.getElementById("btn-exportar-bitacora");
   if (btnBitacora) btnBitacora.addEventListener("click", exportarParaBitacora);
-  const btnCatalogo = document.getElementById("btn-toggle-catalogo");
-  if (btnCatalogo) btnCatalogo.addEventListener("click", toggleCatalogo);
+  conectarAjustes();
   const btnSinc = document.getElementById("btn-sincronizar");
   if (btnSinc) btnSinc.addEventListener("click", function () { nubeSincronizar(false); });
   const btnLlave = document.getElementById("btn-llave-nube");
@@ -3583,8 +3604,6 @@ async function initApp() {
   if (btnRevisar) btnRevisar.addEventListener("click", revisarDatos);
   const btnOffline = document.getElementById("btn-guardar-offline");
   if (btnOffline) btnOffline.addEventListener("click", guardarTodoOffline);
-  const btnExistencias = document.getElementById("btn-toggle-existencias");
-  if (btnExistencias) btnExistencias.addEventListener("click", toggleExistencias);
   const btnStockTodos = document.getElementById("btn-stock-todos");
   if (btnStockTodos) btnStockTodos.addEventListener("click", ponerStockATodos);
   const buscarExistencias = document.getElementById("existencias-buscar");

@@ -128,245 +128,289 @@
 <section class="screen" id="screen-ajustes">
   <h2>Ajustes</h2>
 
-  <!-- Instalar la app en el celular. Se muestra solo si aún NO está instalada. -->
+  <!-- Ajustes es una lista de renglones. Cada uno se abre al tocarlo y la
+       explicación va escondida detrás del botón (i), para que la pantalla se
+       vea corta y solo salga texto cuando se pide. -->
+
+  <!-- Instalar la app. Se muestra solo si aún NO está instalada. -->
   <div class="card hidden" id="card-instalar">
     <h3>📲 Instalar la app en este celular</h3>
     <div class="form-hint" id="instalar-texto">
-      Instálala para que viva en tu celular como cualquier otra app: se abre desde su
-      ícono y funciona <b>sin internet</b>.
+      Vive en tu celular como cualquier app y funciona <b>sin internet</b>.
     </div>
     <div style="margin-top:8px">
       <button class="btn btn-accent btn-block" id="btn-instalar">📲 Instalar aplicación</button>
     </div>
   </div>
 
-  <div class="card">
-    <h3>☁️ Nube · tus productos en un solo lugar</h3>
-    <div class="form-hint">
-      El catálogo y las existencias viven en tu propio GitHub. Lo que cambies aquí
-      sube, y lo que se cambie en la compu baja. <b>Sin internet la app funciona
-      igual</b>: se sincroniza sola en cuanto hay señal.
-    </div>
-    <div class="estado-offline" id="estado-nube">Revisando…</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="btn btn-accent btn-sm" id="btn-sincronizar">☁️ Sincronizar ahora</button>
-      <button class="btn btn-secondary btn-sm" id="btn-llave-nube">🔑 Poner la llave</button>
-    </div>
-    <div class="form-hint" style="margin-top:8px">
-      La llave se pone <b>una sola vez por aparato</b> y sirve para SUBIR cambios.
-      Se queda guardada solo en este celular.
-    </div>
-  </div>
+  <div class="aj-lista">
 
-  <div class="card">
-    <h3>🔧 Revisar y recuperar mis datos</h3>
-    <div class="form-hint">
-      Si ves la app vacía, aquí se revisa la memoria de tu celular tal cual está,
-      para saber si tus tienditas y tus notas siguen ahí. Nunca borra nada.
-    </div>
-    <div class="estado-offline" id="rescate-info">Revisando…</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="btn btn-secondary btn-sm" id="btn-revisar-datos">🔍 Volver a revisar</button>
-      <button class="btn btn-accent btn-sm hidden" id="btn-rescatar">✅ Recuperar lo que se encontró</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>📴 Usar la app sin internet</h3>
-    <div class="form-hint">
-      La app guarda todo en tu celular para funcionar sin señal. Aquí puedes ver
-      si ya quedó lista, y forzar el guardado si algo faltó.
-    </div>
-    <div class="estado-offline" id="estado-offline">Revisando…</div>
-    <div style="margin-top:8px">
-      <button class="btn btn-accent btn-block" id="btn-guardar-offline">⬇️ Guardar todo para usar sin internet</button>
-    </div>
-  </div>
-
-  <!-- Lo primero que se toca cada mañana antes de salir a la ruta -->
-  <div class="card">
-    <button type="button" class="collapse-header" id="btn-toggle-existencias" aria-expanded="false">
-      <span>📦 Existencias para la Vitrina</span>
-      <span class="collapse-caret" id="existencias-caret">▼</span>
-    </button>
-    <div id="existencias-panel" class="hidden" style="margin-top:12px">
-      <div class="form-hint">
-        Cuántas piezas llevas hoy de cada producto. En la <b>Vitrina</b> solo se exhiben
-        los que tengan al menos 1 pieza. Los <b>4 principales</b> van a consignación:
-        siempre se exhiben y no llevan cuenta.
+    <!-- Lo primero que se toca cada mañana antes de salir a la ruta -->
+    <div class="aj">
+      <div class="aj-head" id="btn-toggle-existencias" data-panel="existencias-panel" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">📦 Existencias de hoy</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret" id="existencias-caret">▼</span>
       </div>
-      <div class="stock-masivo">
-        <input type="number" id="stock-todos" min="0" step="1" placeholder="5">
-        <button class="btn btn-secondary btn-sm" id="btn-stock-todos">Poner esa cantidad a todos</button>
+      <div class="aj-info hidden">
+        Cuántas piezas llevas hoy. En la Vitrina solo se exhibe lo que tenga al menos
+        una pieza. Los 4 de consignación siempre salen y no llevan cuenta. El botón 📷
+        le pone tu propia foto a un producto.
       </div>
-      <input type="text" id="existencias-buscar" placeholder="🔍 Buscar producto…" class="search-row">
-      <div id="existencias-list"></div>
-      <div class="form-hint" style="margin-top:10px">
-        El botón <b>📷</b> le pone foto a un producto (con la cámara o desde tu galería).
-        Esa foto manda sobre la que trae la app.
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Datos del negocio (aparecen en el ticket)</h3>
-    <form id="form-negocio">
-      <label class="form-label">Nombre del negocio</label>
-      <input type="text" id="aj-nombre">
-      <label class="form-label">WhatsApp</label>
-      <input type="text" id="aj-whatsapp">
-      <label class="form-label">Slogan</label>
-      <input type="text" id="aj-slogan">
-      <button class="btn btn-secondary btn-block" type="submit">Guardar</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>Reporte de ventas (PDF)</h3>
-    <div class="form-hint">Detalle venta por venta, con los productos de cada una, tu costo, el precio al cliente y tu utilidad bruta.</div>
-    <label class="form-label" style="margin-top:8px">Periodo</label>
-    <select id="reporte-periodo" class="select-campo">
-      <option value="todo">Todas las ventas</option>
-      <option value="semana">Esta semana (lunes a domingo)</option>
-      <option value="mes">Este mes</option>
-      <option value="dia">Día específico…</option>
-      <option value="rango">Rango de fechas (desde – hasta)…</option>
-    </select>
-    <input type="date" id="reporte-fecha" class="select-campo hidden" style="margin-top:8px">
-    <div id="reporte-rango" class="hidden" style="margin-top:8px">
-      <label class="form-label">Desde</label>
-      <input type="date" id="reporte-desde" class="select-campo">
-      <label class="form-label">Hasta</label>
-      <input type="date" id="reporte-hasta" class="select-campo">
-    </div>
-    <button class="btn btn-accent btn-block" id="btn-reporte-pdf">📄 Generar reporte</button>
-    <div class="form-hint" style="margin-top:6px">Se abre en una pestaña nueva con botones para <b>imprimir / guardar como PDF</b> y para <b>descargar en Excel</b>.</div>
-  </div>
-
-  <div class="card">
-    <h3>🔗 Pasar ventas a la Bitácora</h3>
-    <div class="form-hint">Descarga tus ventas agrupadas por día y producto. Ese archivo se carga en tu <b>Bitácora de Ventas</b> (en la compu) con el botón "Importar ventas de la app".</div>
-    <div style="margin-top:6px">
-      <button class="btn btn-accent btn-sm" id="btn-exportar-bitacora">📤 Exportar ventas para Bitácora</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🧮 Cotizador de Compras</h3>
-    <div class="form-hint">
-      Costos, precios, utilidad de cada producto y el pedido por proveedor.
-      Usa <b>el mismo catálogo que esta app</b>: lo que cambies allá se ve aquí y al revés.
-      Para tenerlo como app aparte, entra y presiona <b>⬇️ Instalar en el celular</b>.
-    </div>
-    <div style="margin-top:6px">
-      <a class="btn btn-accent btn-sm" href="https://arthur-arias-martinez.github.io/cotizador/" target="_blank" rel="noopener">🧮 Abrir el Cotizador</a>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🔗 Traer precios del Cotizador (de otro aparato)</h3>
-    <div class="form-hint">
-      Solo hace falta para pasar precios <b>de un aparato a otro</b> (de la compu al celular).
-      En el Cotizador presiona <b>“📲 Enviar precios a la app”</b> y sube aquí el archivo.
-      Actualiza <b>costos, precios y proveedores</b> sin borrar nada: antes de guardar te
-      muestra exactamente qué va a cambiar, y lo que no venga en el archivo se queda igual.
-    </div>
-    <div style="margin-top:6px">
-      <label class="btn btn-accent btn-sm" style="cursor:pointer">
-        📥 Traer precios del Cotizador
-        <input type="file" id="input-cotizador" accept="application/json" style="display:none">
-      </label>
-    </div>
-  </div>
-
-  <div class="card">
-    <button type="button" class="collapse-header" id="btn-toggle-catalogo" aria-expanded="false">
-      <span>📦 Catálogo de productos</span>
-      <span class="collapse-caret" id="catalogo-caret">▼</span>
-    </button>
-    <div id="catalogo-panel" class="hidden" style="margin-top:12px">
-      <div id="productos-admin-list"></div>
-      <datalist id="proveedores-lista"></datalist>
-      <form id="form-nuevo-producto" class="prod-nuevo-form">
-        <input type="text" id="np-nombre" placeholder="Producto nuevo">
-        <input type="text" id="np-proveedor" list="proveedores-lista" placeholder="Proveedor (Chinos, GDL, G Tide…)">
-        <div class="prod-nuevo-precios">
-          <label>Costo mío<input type="number" id="np-costo" placeholder="—" min="0" step="0.01"></label>
-          <label>Precio cliente<input type="number" id="np-precio" placeholder="—" min="0" step="0.01"></label>
-          <label>Precio usuario<input type="number" id="np-usuario" placeholder="—" min="0" step="0.01"></label>
-          <label>Piezas que llevas<input type="number" id="np-piezas" placeholder="0" min="0" step="1"></label>
+      <div id="existencias-panel" class="aj-body hidden">
+        <div class="stock-masivo">
+          <input type="number" id="stock-todos" min="0" step="1" placeholder="5">
+          <button class="btn btn-secondary btn-sm" id="btn-stock-todos">Poner esa cantidad a todos</button>
         </div>
-        <button class="btn btn-secondary btn-sm" type="submit">➕ Agregar producto</button>
-      </form>
-      <div class="form-hint" style="margin-top:8px">
-        <b>Costo mío</b>: lo que tú pagas. <b>Precio cliente</b>: lo que te paga la tiendita (es el que cobra la app).
-        <b>Precio usuario</b>: el precio de etiqueta al que la tiendita se lo vende al consumidor final (solo informativo).
-        <b>Piezas que llevas</b>: si lo dejas en cero, el producto NO se exhibe en la Vitrina (ahí solo sale lo que traes).
+        <input type="text" id="existencias-buscar" placeholder="🔍 Buscar producto…" class="search-row">
+        <div id="existencias-list"></div>
       </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Calculadora de paquetes</h3>
-    <div class="form-hint">Para vender en línea. El envío se paga igual mandes 1 pieza o 5, así que te dice a cuánto vender cada paquete y cuánto ganas.</div>
-    <div class="calc-campos">
-      <label>Costo por pieza<input type="number" id="calc-costo" min="0" step="0.01" placeholder="118"></label>
-      <label>Costo de envío<input type="number" id="calc-envio" min="0" step="0.01" value="150"></label>
-      <label>Precio de 1 pza<input type="number" id="calc-precio" min="0" step="0.01" placeholder="299"></label>
-    </div>
-    <div id="calc-resultado"></div>
-  </div>
-
-  <div class="card">
-    <h3>Impresora Bluetooth (MP210)</h3>
-    <div class="form-hint" id="printer-name">Sin conectar</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-      <button class="btn btn-accent btn-sm" id="btn-conectar-impresora">🔗 Conectar</button>
-      <button class="btn btn-secondary btn-sm" id="btn-prueba-impresion">🧪 Prueba de impresión</button>
-      <button class="btn btn-ghost btn-sm" id="btn-desconectar-impresora">Desconectar</button>
-    </div>
-    <div class="print-status" id="printer-status"></div>
-  </div>
-
-  <div class="card">
-    <div class="switch-row">
-      <div>
-        <h3 style="margin-bottom:2px">Bloqueo con PIN</h3>
-        <div class="form-hint" style="margin:0">Pide un PIN al abrir la app.</div>
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-impresora" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">🖨️ Impresora</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
       </div>
+      <div class="aj-info hidden">
+        Conecta tu MP210 por Bluetooth para imprimir las notas. Se conecta una vez y
+        se queda. Solo funciona con Chrome en Android.
+      </div>
+      <div id="panel-impresora" class="aj-body hidden">
+        <div class="form-hint" id="printer-name">Sin conectar</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-accent btn-sm" id="btn-conectar-impresora">🔗 Conectar</button>
+          <button class="btn btn-secondary btn-sm" id="btn-prueba-impresion">🧪 Prueba</button>
+          <button class="btn btn-ghost btn-sm" id="btn-desconectar-impresora">Desconectar</button>
+        </div>
+        <div class="print-status" id="printer-status"></div>
+      </div>
+    </div>
+
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-reporte" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">📄 Reporte de ventas</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        Venta por venta, con lo que llevaba cada una, tu costo, el precio al cliente y
+        tu utilidad. Se abre en otra pestaña para imprimirlo, guardarlo en PDF o bajarlo
+        a Excel.
+      </div>
+      <div id="panel-reporte" class="aj-body hidden">
+        <select id="reporte-periodo" class="select-campo">
+          <option value="todo">Todas las ventas</option>
+          <option value="semana">Esta semana (lunes a domingo)</option>
+          <option value="mes">Este mes</option>
+          <option value="dia">Día específico…</option>
+          <option value="rango">Rango de fechas (desde – hasta)…</option>
+        </select>
+        <input type="date" id="reporte-fecha" class="select-campo hidden" style="margin-top:8px">
+        <div id="reporte-rango" class="hidden" style="margin-top:8px">
+          <label class="form-label">Desde</label>
+          <input type="date" id="reporte-desde" class="select-campo">
+          <label class="form-label">Hasta</label>
+          <input type="date" id="reporte-hasta" class="select-campo">
+        </div>
+        <button class="btn btn-accent btn-block" id="btn-reporte-pdf">📄 Generar reporte</button>
+      </div>
+    </div>
+
+    <div class="aj">
+      <div class="aj-head" id="btn-toggle-catalogo" data-panel="catalogo-panel" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">🏷️ Catálogo de productos</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret" id="catalogo-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        Agrega, edita o borra productos. <b>Costo mío</b> es lo que tú pagas.
+        <b>Precio cliente</b> es lo que te paga la tiendita, y es el que cobra la app.
+        <b>Precio usuario</b> es a como la tiendita lo revende, solo informativo.
+      </div>
+      <div id="catalogo-panel" class="aj-body hidden">
+        <div id="productos-admin-list"></div>
+        <datalist id="proveedores-lista"></datalist>
+        <form id="form-nuevo-producto" class="prod-nuevo-form">
+          <input type="text" id="np-nombre" placeholder="Producto nuevo">
+          <input type="text" id="np-proveedor" list="proveedores-lista" placeholder="Proveedor (Chinos, GDL, G Tide…)">
+          <div class="prod-nuevo-precios">
+            <label>Costo mío<input type="number" id="np-costo" placeholder="—" min="0" step="0.01"></label>
+            <label>Precio cliente<input type="number" id="np-precio" placeholder="—" min="0" step="0.01"></label>
+            <label>Precio usuario<input type="number" id="np-usuario" placeholder="—" min="0" step="0.01"></label>
+            <label>Piezas que llevas<input type="number" id="np-piezas" placeholder="0" min="0" step="1"></label>
+          </div>
+          <button class="btn btn-secondary btn-sm" type="submit">➕ Agregar producto</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-nube" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">☁️ Nube</span>
+        <span class="aj-estado" id="estado-nube">…</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        Tu catálogo y tus existencias viven en tu propio GitHub, y se sincronizan solos
+        con el Cotizador de la compu en cuanto hay señal. Sin internet la app trabaja
+        igual. La llave se pone una sola vez por aparato y sirve para SUBIR cambios;
+        para bajarlos no hace falta.
+      </div>
+      <div id="panel-nube" class="aj-body hidden">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-accent btn-sm" id="btn-sincronizar">☁️ Sincronizar ahora</button>
+          <button class="btn btn-secondary btn-sm" id="btn-llave-nube">🔑 Poner la llave</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-offline" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">📴 Usar sin internet</span>
+        <span class="aj-estado" id="estado-offline">…</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        La app se guarda entera en tu celular, fotos incluidas, para trabajar sin señal.
+        Se guarda sola la primera vez; el botón es por si algo faltó.
+      </div>
+      <div id="panel-offline" class="aj-body hidden">
+        <button class="btn btn-accent btn-block" id="btn-guardar-offline">⬇️ Guardar todo</button>
+      </div>
+    </div>
+
+    <a class="aj aj-link" href="https://arthur-arias-martinez.github.io/cotizador/" target="_blank" rel="noopener">
+      <span class="aj-tit">🧮 Abrir el Cotizador</span>
+      <span class="aj-caret">↗</span>
+    </a>
+
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-negocio" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">🏪 Datos del ticket</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        El nombre, el WhatsApp y el slogan que salen impresos arriba de cada nota.
+      </div>
+      <div id="panel-negocio" class="aj-body hidden">
+        <form id="form-negocio">
+          <label class="form-label">Nombre del negocio</label>
+          <input type="text" id="aj-nombre">
+          <label class="form-label">WhatsApp</label>
+          <input type="text" id="aj-whatsapp">
+          <label class="form-label">Slogan</label>
+          <input type="text" id="aj-slogan">
+          <button class="btn btn-secondary btn-block" type="submit">Guardar</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-respaldo" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">💾 Respaldo</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        Tus tienditas y tus notas viven solo en este celular. El respaldo baja un archivo
+        con todo; guárdalo seguido. Importar mete de vuelta un respaldo, sin borrar lo que
+        ya tengas.
+      </div>
+      <div id="panel-respaldo" class="aj-body hidden">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" id="btn-exportar">⬇️ Exportar</button>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+            ⬆️ Importar
+            <input type="file" id="input-importar" accept="application/json" style="display:none">
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="aj aj-switch">
+      <span class="aj-tit">🔒 Bloqueo con PIN</span>
+      <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
       <label class="switch">
         <input type="checkbox" id="pin-toggle">
         <span class="slider"></span>
       </label>
+      <div class="aj-info hidden">Pide un PIN cada vez que abres la app.</div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Respaldo de datos</h3>
-    <div class="form-hint">Todo se guarda solo en este celular. Exporta seguido para no perder tu información.</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
-      <button class="btn btn-secondary btn-sm" id="btn-exportar">⬇️ Exportar respaldo</button>
-      <label class="btn btn-ghost btn-sm" style="cursor:pointer">
-        ⬆️ Importar respaldo
-        <input type="file" id="input-importar" accept="application/json" style="display:none">
-      </label>
+    <div class="aj">
+      <div class="aj-head" data-panel="panel-version" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">ℹ️ Versión</span>
+        <span class="aj-estado" id="app-version">—</span>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div id="panel-version" class="aj-body hidden">
+        <button class="btn btn-ghost btn-sm" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <h3>Base de datos de clientes</h3>
-    <div class="form-hint">Descarga tus tienditas (nombre, WhatsApp, dirección) en un archivo CSV para pasarlas a tu Bitácora de Ventas o abrirlas en Excel.</div>
-    <div style="margin-top:6px">
-      <button class="btn btn-accent btn-sm" id="btn-exportar-clientes">📇 Exportar clientes (CSV)</button>
-    </div>
-  </div>
+    <!-- Cosas que Arthur no usa en la ruta. No se borraron: se guardaron aquí
+         para que la pantalla no las traiga estorbando. -->
+    <div class="aj aj-guardadas">
+      <div class="aj-head" data-panel="panel-guardadas" role="button" tabindex="0" aria-expanded="false">
+        <span class="aj-tit">🧰 Herramientas guardadas</span>
+        <button type="button" class="aj-i" aria-label="Qué es esto">i</button>
+        <span class="aj-caret">▼</span>
+      </div>
+      <div class="aj-info hidden">
+        Cosas que no ocupas a diario. Aquí siguen por si algún día las necesitas.
+      </div>
+      <div id="panel-guardadas" class="aj-body hidden">
 
-  <div class="card">
-    <h3>Versión de la app</h3>
-    <div class="form-hint" id="app-version">—</div>
-    <div style="margin-top:6px">
-      <button class="btn btn-ghost btn-sm" id="btn-buscar-actualizacion">🔄 Buscar actualización</button>
+        <div class="aj-sub">
+          <div class="aj-sub-tit">🔧 Revisar y recuperar mis datos</div>
+          <div class="form-hint">Si ves la app vacía, revisa la memoria del celular a ver si tus tienditas y notas siguen ahí. Nunca borra nada.</div>
+          <div class="estado-offline" id="rescate-info">Sin revisar</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="btn btn-secondary btn-sm" id="btn-revisar-datos">🔍 Revisar</button>
+            <button class="btn btn-accent btn-sm hidden" id="btn-rescatar">✅ Recuperar</button>
+          </div>
+        </div>
+
+        <div class="aj-sub">
+          <div class="aj-sub-tit">📤 Pasar ventas a la Bitácora</div>
+          <div class="form-hint">Baja tus ventas por día y producto para cargarlas en la Bitácora de la compu.</div>
+          <button class="btn btn-secondary btn-sm" id="btn-exportar-bitacora" style="margin-top:8px">📤 Exportar</button>
+        </div>
+
+        <div class="aj-sub">
+          <div class="aj-sub-tit">📇 Clientes en Excel</div>
+          <div class="form-hint">Baja tus tienditas con nombre, WhatsApp y dirección en un archivo CSV.</div>
+          <button class="btn btn-secondary btn-sm" id="btn-exportar-clientes" style="margin-top:8px">📇 Exportar CSV</button>
+        </div>
+
+        <div class="aj-sub">
+          <div class="aj-sub-tit">📥 Traer precios del Cotizador por archivo</div>
+          <div class="form-hint">Ya no hace falta: la nube lo hace sola. Quedó por si algún día no hay señal en ninguno de los dos aparatos.</div>
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin-top:8px">
+            📥 Subir archivo
+            <input type="file" id="input-cotizador" accept="application/json" style="display:none">
+          </label>
+        </div>
+
+        <div class="aj-sub">
+          <div class="aj-sub-tit">🧮 Calculadora de paquetes</div>
+          <div class="form-hint">Para venta en línea: como el envío cuesta igual mandes 1 pieza o 5, te dice a cuánto vender cada paquete.</div>
+          <div class="calc-campos">
+            <label>Costo por pieza<input type="number" id="calc-costo" min="0" step="0.01" placeholder="118"></label>
+            <label>Costo de envío<input type="number" id="calc-envio" min="0" step="0.01" value="150"></label>
+            <label>Precio de 1 pza<input type="number" id="calc-precio" min="0" step="0.01" placeholder="299"></label>
+          </div>
+          <div id="calc-resultado"></div>
+        </div>
+
+      </div>
     </div>
+
   </div>
 </section>
 
