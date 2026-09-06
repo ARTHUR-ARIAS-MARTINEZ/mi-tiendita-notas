@@ -663,6 +663,34 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// El Cargador T.C. 45W GAR172 tambien viene en negro y blanco (2026-09-06).
+// Se supo al llegar sus fotos: Arthur mando las dos. Misma logica aditiva:
+// si ya tiene colores puestos se respeta, y las piezas contadas sin color se
+// pasan al primero para que las reparta a mano.
+(function colorGAR172_2026_09() {
+  const FLAG = "mte_migr_colores_gar172";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambio = false, stockCambio = false;
+    for (const p of State.catalogo) {
+      if (codigoDeProducto(p.nombre) !== "GAR172") continue;
+      if (Array.isArray(p.colores) && p.colores.length) continue;
+      p.colores = ["Negro", "Blanco"];
+      cambio = true;
+      const viejas = Number(State.stock[p.id]);
+      if (Number.isFinite(viejas) && viejas > 0) {
+        const primero = p.id + "|Negro";
+        State.stock[primero] = (Number(State.stock[primero]) || 0) + viejas;
+        delete State.stock[p.id];
+        stockCambio = true;
+      }
+    }
+    if (cambio) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    if (stockCambio) saveJSON(STORE_KEYS.stock, State.stock);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 // Restauracion automatica del historial de julio (2026-08-30).
 // La memoria del celular se limpio y se perdieron las tienditas y las notas.
 // Aqui se regresan solas, reconstruidas del reporte del 19 de julio.

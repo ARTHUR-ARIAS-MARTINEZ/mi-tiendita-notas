@@ -61,7 +61,7 @@ const CATALOGO_DEFAULT = [
   { nombre: "Cargador Con Cable T.C. a iPhone GAR154", precio: 80, costo: 46, precioUsuario: 100, proveedor: "GDL" },
   { nombre: "Cargador Carga Rápida 20W GAR152", precio: 80, costo: 32.5, precioUsuario: 120, proveedor: "GDL", colores: ["Negro", "Blanco"] },
   { nombre: "Cargador Carga Rápida 30W GAR164", precio: 130, costo: 55.5, precioUsuario: 160, proveedor: "GDL", colores: ["Negro", "Blanco"] },
-  { nombre: "Cargador T.C. 45W GAR172", precio: 150, costo: 66, precioUsuario: 180, proveedor: "GDL" },
+  { nombre: "Cargador T.C. 45W GAR172", precio: 150, costo: 66, precioUsuario: 180, proveedor: "GDL", colores: ["Negro", "Blanco"] },
   { nombre: "Cargador Carga Rápida 45W GAR171", precio: 210, costo: 101.5, precioUsuario: 250, proveedor: "GDL", colores: ["Negro", "Blanco"] },
   { nombre: "Receptor Bluetooth XO8127", precio: 65, costo: 32, precioUsuario: 85, proveedor: "GDL" },
   { nombre: "Soporte Universal Con Base Giratoria (Base Metal)", precio: 45, costo: 21.5, precioUsuario: 60, proveedor: "GDL" },

@@ -55,7 +55,20 @@ const FOTOS_POR_CODIGO = {
   "BOC244": "boc244.webp",
   "BOC250": "boc250.webp",
 
+  // --- Cables (los que faltaban) ---
+  "CAB251": "cab251.webp",     // Cable T.C Carga Rápida 3 Amp
+  "CAB259": "cab259.webp",     // Cable Pulpo (3 puntas)
+
+  // --- Cargadores (los que faltaban) ---
+  // Los que vienen en negro y blanco llevan de foto general la negra.
+  "GAR151": "gar151.webp",         // Inalámbrico 1 Hora
+  "GAR152": "gar152-negro.webp",   // Carga Rápida 20W
+  "GAR164": "gar164-negro.webp",   // Carga Rápida 30W
+  "GAR171": "gar171-negro.webp",   // Carga Rápida 45W (dos puertos)
+  "GAR172": "gar172-negro.webp",   // T.C. 45W (un puerto)
+
   // --- Otros ---
+  "XO8127": "xo8127.webp",     // Receptor Bluetooth
   "TB6323": "tb6323.webp",     // Reloj inteligente (foto del T-500)
   "PJ097": "pj097.webp",       // Soporte magnético
   "RAT001": "rat001.webp",     // Mouse inalámbrico
@@ -70,6 +83,11 @@ const FOTOS_POR_PALABRAS = [
   { palabras: ["hdmi"],               archivo: "hdmi3m.webp" },
   { palabras: ["tira", "led"],        archivo: "tiraled.webp" },
   { palabras: ["bocina", "bicicleta"], archivo: "sv01.webp" },
+  // El "L22" no lo agarra el buscador de códigos (pide 2 letras y este trae
+  // una sola), por eso va por palabra. De foto general lleva la negra.
+  { palabras: ["l22"],                archivo: "l22-negro.webp" },
+  { palabras: ["plug"],               archivo: "cableplug.webp" },
+  { palabras: ["giratoria"],          archivo: "soporte-giratorio.webp" },
 ];
 
 
@@ -120,6 +138,28 @@ const FOTOS_POR_COLOR = {
     "Blanco": "sv01-blanco.webp",
     "Rojo": "sv01-rojo.webp",
     "Azul": "sv01-azul.webp"
+  },
+  "GAR152": {
+    "Negro": "gar152-negro.webp",
+    "Blanco": "gar152-blanco.webp"
+  },
+  "GAR164": {
+    "Negro": "gar164-negro.webp",
+    "Blanco": "gar164-blanco.webp"
+  },
+  "GAR171": {
+    "Negro": "gar171-negro.webp",
+    "Blanco": "gar171-blanco.webp"
+  },
+  "GAR172": {
+    "Negro": "gar172-negro.webp",
+    "Blanco": "gar172-blanco.webp"
+  },
+  "l22": {
+    "Negro": "l22-negro.webp",
+    "Blanco": "l22-blanco.webp",
+    "Lila": "l22-lila.webp",
+    "Rosa": "l22-rosa.webp"
   }
 };
 

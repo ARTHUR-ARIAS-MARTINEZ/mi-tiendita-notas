@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v39";
+const CACHE = "mte-notas-v40";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -106,6 +106,25 @@ const EXTRAS = [
   "productos/sv01-blanco.webp",
   "productos/sv01-negro.webp",
   "productos/sv01-rojo.webp",
+  // Fotos nuevas (2026-09-06): los 11 productos que salían sin imagen.
+  "productos/cab251.webp",
+  "productos/cab259.webp",
+  "productos/cableplug.webp",
+  "productos/gar151.webp",
+  "productos/gar152-negro.webp",
+  "productos/gar152-blanco.webp",
+  "productos/gar164-negro.webp",
+  "productos/gar164-blanco.webp",
+  "productos/gar171-negro.webp",
+  "productos/gar171-blanco.webp",
+  "productos/gar172-negro.webp",
+  "productos/gar172-blanco.webp",
+  "productos/xo8127.webp",
+  "productos/soporte-giratorio.webp",
+  "productos/l22-negro.webp",
+  "productos/l22-blanco.webp",
+  "productos/l22-lila.webp",
+  "productos/l22-rosa.webp",
 ];
 
 self.addEventListener("install", (ev) => {
