@@ -691,6 +691,36 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// El Audifono Buytiti EZ-165 se exhibe SIN colores (2026-09-06). Su foto
+// muestra los cuatro juntos, asi que en la Vitrina va en una sola diapositiva
+// en vez de repetir la misma imagen cinco veces. Va a consignacion, o sea que
+// no lleva cuenta de piezas; aun asi, si algun color tenia piezas apuntadas se
+// juntan en la cuenta general para no perderlas.
+(function quitarColoresEZ165() {
+  const FLAG = "mte_migr_ez165_sin_colores";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    let cambio = false, stockCambio = false;
+    for (const p of State.catalogo) {
+      if (codigoDeProducto(p.nombre) !== "EZ-165") continue;
+      if (!Array.isArray(p.colores) || !p.colores.length) continue;
+      let juntas = Number(State.stock[p.id]) || 0;
+      for (const c of p.colores) {
+        const clave = p.id + "|" + c;
+        const n = Number(State.stock[clave]);
+        if (Number.isFinite(n) && n > 0) { juntas += n; stockCambio = true; }
+        delete State.stock[clave];
+      }
+      if (juntas > 0) State.stock[p.id] = juntas;
+      delete p.colores;
+      cambio = true;
+    }
+    if (cambio) saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    if (stockCambio) saveJSON(STORE_KEYS.stock, State.stock);
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 // Restauracion automatica del historial de julio (2026-08-30).
 // La memoria del celular se limpio y se perdieron las tienditas y las notas.
 // Aqui se regresan solas, reconstruidas del reporte del 19 de julio.
@@ -986,22 +1016,28 @@ function disponibleParaVender(p, color) {
   return Math.max(0, s - porDescontar);
 }
 
-// Productos que se exhiben en la Vitrina, en orden:
+// Lo que se exhibe en la Vitrina, ya desglosado: CADA COLOR es su propia
+// diapositiva, para que el cliente lo vea deslizando y no picando botones.
+// Devuelve una lista de { p, color } en este orden:
 //   1) los 4 principales (siempre, son los de consignación)
-//   2) los novedosos que SÍ llevas (existencia mayor a 0)
-// Un novedoso que ya está en el carrito se queda visible aunque su existencia
-// llegue a 0 con esta misma venta, para poder corregir la cantidad.
-function productosDeVitrina() {
-  const ordenado = catalogoOrdenado();
-  const principales = ordenado.filter(p => esProductoPrincipal(p.nombre));
-  const apartadas = (p) => {
+//   2) los novedosos que SÍ llevas, color por color
+// Un color con existencia 0 no se exhibe. Si ya está en el carrito sí se
+// queda visible, aunque su existencia llegue a 0 con esta misma venta, para
+// poder corregir la cantidad.
+function diapositivasDeVitrina() {
+  const salida = [];
+  for (const p of catalogoOrdenado()) {
+    const principal = esProductoPrincipal(p.nombre);
     const cols = coloresDe(p);
-    if (!cols.length) return enCarrito(p.id);
-    return cols.reduce((a, c) => a + enCarrito(p.id, c), 0);
-  };
-  const novedosos = ordenado.filter(p =>
-    !esProductoPrincipal(p.nombre) && (stockDe(p) > 0 || apartadas(p) > 0));
-  return principales.concat(novedosos);
+    if (!cols.length) {
+      if (principal || stockDe(p) > 0 || enCarrito(p.id) > 0) salida.push({ p, color: "" });
+      continue;
+    }
+    for (const c of cols) {
+      if (principal || stockDe(p, c) > 0 || enCarrito(p.id, c) > 0) salida.push({ p, color: c });
+    }
+  }
+  return salida;
 }
 
 // Orden en el que se ven los productos en TODA la app: primero los 4
@@ -1248,27 +1284,13 @@ function copiarTexto(texto) {
 // ===================================================================
 // PANTALLA: Vitrina  (el catálogo con fotos que le pasas al cliente)
 // ===================================================================
-// Una diapositiva por producto: foto grande, precio y contador. Se avanza
-// deslizando con el dedo. La ÚLTIMA diapositiva es el cierre de la venta y
-// usa exactamente la misma nota y el mismo botón de imprimir que la pantalla
-// Nota: es una sola venta, se arme donde se arme.
+// Una diapositiva por producto Y POR COLOR: foto grande, el nombre encima de
+// la foto, la ganancia de la tiendita como número protagonista y el contador.
+// Se avanza deslizando con el dedo. La ÚLTIMA diapositiva es el cierre de la
+// venta y usa exactamente la misma nota y el mismo botón de imprimir que la
+// pantalla Nota: es una sola venta, se arme donde se arme.
 
 function vitrinaCarrusel() { return document.getElementById("vitrina-carrusel"); }
-
-// Color que se está mostrando de cada producto en la Vitrina.
-const colorEnVitrina = {};
-function colorActual(p) {
-  const cols = coloresDe(p);
-  if (!cols.length) return "";
-  const elegido = colorEnVitrina[p.id];
-  if (elegido && cols.indexOf(elegido) !== -1) return elegido;
-  // Por defecto se muestra el primer color que sí tenga piezas.
-  return cols.find(c => disponibleParaVender(p, c) > 0) || cols[0];
-}
-function elegirColor(prodId, color) {
-  colorEnVitrina[prodId] = color;
-  actualizarContadoresVitrina();
-}
 
 function renderVitrina(irAlInicio) {
   const carrusel = vitrinaCarrusel();
@@ -1280,9 +1302,10 @@ function renderVitrina(irAlInicio) {
   // HTML, así conserva sus botones ya conectados.
   carrusel.querySelectorAll("[data-slide-prod], .vitrina-aviso").forEach(n => n.remove());
 
-  const productos = productosDeVitrina();
-  const hayNovedosos = productos.some(p => !esProductoPrincipal(p.nombre));
-  const html = productos.map(slideDeProducto).join("") + (hayNovedosos ? "" : slideSinExistencias());
+  const lista = diapositivasDeVitrina();
+  const hayNovedosos = lista.some(d => !esProductoPrincipal(d.p.nombre));
+  const html = lista.map(d => slideDeProducto(d.p, d.color)).join("")
+    + (hayNovedosos ? "" : slideSinExistencias());
   document.getElementById("vitrina-cierre").insertAdjacentHTML("beforebegin", html);
 
   renderClienteBox();
@@ -1301,33 +1324,37 @@ function renderVitrina(irAlInicio) {
   actualizarBarraVitrina();
 }
 
-function slideDeProducto(p) {
-  const color = colorActual(p);
+function slideDeProducto(p, color) {
+  color = color || "";
   const foto = fotoDe(p, color);
   const principal = esProductoPrincipal(p.nombre);
-  const cols = coloresDe(p);
   const usuario = normalizarCosto(p.precioUsuario);
   const ganancia = (usuario !== null && usuario > p.precio) ? usuario - p.precio : null;
+  const cc = color ? escapeHtml(color) : "";
   return `
-    <article class="vitrina-slide" data-slide-prod="${p.id}">
+    <article class="vitrina-slide" data-slide-prod="${p.id}" data-slide-color="${cc}">
       <div class="vitrina-foto">
         ${foto
           ? `<img src="${escapeHtml(foto)}" alt="${escapeHtml(p.nombre)}" loading="lazy" onerror="fotoNoCargo(this)">`
           : cajaSinFoto(p.nombre)}
+        <div class="vitrina-titulo">
+          <span class="vitrina-titulo-nombre">${escapeHtml(p.nombre)}</span>
+          ${color ? `<span class="vitrina-titulo-color">${cc}</span>` : ""}
+        </div>
         ${principal ? `<span class="vitrina-badge">⭐ Consignación</span>` : ""}
       </div>
-      <div class="vitrina-nombre">${escapeHtml(p.nombre)}</div>
-      <div class="vitrina-precio">${fmtMoney(p.precio)}</div>
-      <div class="vitrina-ganancia">${ganancia !== null
-        ? `Tú lo vendes en <b>${fmtMoney(usuario)}</b> · ganas <b>${fmtMoney(ganancia)}</b>`
-        : "&nbsp;"}</div>
-      ${cols.length ? `<div class="vitrina-colores" data-colores>${cols.map(c =>
-        `<button class="color-btn" data-color="${escapeHtml(c)}"
-           onclick="elegirColor('${p.id}','${escapeHtml(c)}')">${escapeHtml(c)}</button>`).join("")}</div>` : ""}
+
+      <div class="vitrina-dinero">
+        <div class="vitrina-costo">Te cuesta <b>${fmtMoney(p.precio)}</b></div>
+        ${ganancia !== null ? `
+          <div class="vitrina-venta">Lo vendes en <b>${fmtMoney(usuario)}</b></div>
+          <div class="vitrina-gana"><span>GANAS</span>${fmtMoney(ganancia)}</div>` : ""}
+      </div>
+
       <div class="vitrina-qty">
-        <button class="vitrina-qty-btn" data-menos onclick="marcarEnVitrina('${p.id}',-1)" aria-label="Quitar uno">−</button>
+        <button class="vitrina-qty-btn" data-menos onclick="marcarEnVitrina('${p.id}',-1,'${cc}')" aria-label="Quitar uno">−</button>
         <span class="vitrina-qty-val" data-qty>0</span>
-        <button class="vitrina-qty-btn" data-mas onclick="marcarEnVitrina('${p.id}',1)" aria-label="Agregar uno">+</button>
+        <button class="vitrina-qty-btn" data-mas onclick="marcarEnVitrina('${p.id}',1,'${cc}')" aria-label="Agregar uno">+</button>
       </div>
       <div class="vitrina-stock" data-stock></div>
     </article>`;
@@ -1370,9 +1397,8 @@ function irAExistencias() {
   abrirPanelExistencias();
 }
 
-function marcarEnVitrina(prodId, delta) {
-  const p = State.catalogo.find(x => x.id === prodId);
-  const color = p ? colorActual(p) : "";
+function marcarEnVitrina(prodId, delta, color) {
+  color = color || "";
   if (delta > 0) agregarAlCarrito(prodId, color);
   else cambiarCantidad(prodId, -1, color);
 }
@@ -1385,7 +1411,7 @@ function actualizarContadoresVitrina() {
   carrusel.querySelectorAll("[data-slide-prod]").forEach(slide => {
     const p = State.catalogo.find(x => x.id === slide.dataset.slideProd);
     if (!p) return;
-    const color = colorActual(p);
+    const color = slide.dataset.slideColor || "";
     const cantidad = enCarrito(p.id, color);
     const val = slide.querySelector("[data-qty]");
     val.textContent = cantidad;
@@ -1394,22 +1420,6 @@ function actualizarContadoresVitrina() {
 
     const quedan = disponibleParaVender(p, color);
     slide.querySelector("[data-mas]").disabled = quedan < 1;
-
-    // Botones de color: se marca el elegido y se tacha el que ya se acabó.
-    const caja = slide.querySelector("[data-colores]");
-    if (caja) {
-      caja.querySelectorAll(".color-btn").forEach(b => {
-        const c = b.dataset.color;
-        b.classList.toggle("activo", c === color);
-        const hay = disponibleParaVender(p, c);
-        b.classList.toggle("sin", hay < 1);
-        const apartadas = enCarrito(p.id, c);
-        b.textContent = c + (apartadas > 0 ? " (" + apartadas + ")" : "");
-      });
-      const img = slide.querySelector(".vitrina-foto img");
-      const nueva = fotoDe(p, color);
-      if (img && nueva && img.getAttribute("src") !== nueva) img.setAttribute("src", nueva);
-    }
 
     const info = slide.querySelector("[data-stock]");
     if (esProductoPrincipal(p.nombre)) {
@@ -1443,7 +1453,7 @@ function actualizarBarraVitrina() {
   const texto = document.getElementById("vitrina-pos-texto");
   if (texto) {
     if (!actual) texto.textContent = "—";
-    else if (actual.dataset.slideProd) texto.textContent = "Producto " + (i + 1) + " de " + totalProductos;
+    else if (actual.dataset.slideProd) texto.textContent = (i + 1) + " de " + totalProductos;
     else if (actual.id === "vitrina-cierre") texto.textContent = "Cerrar la venta";
     else texto.textContent = "Sin novedades cargadas";
   }
@@ -1458,8 +1468,11 @@ function actualizarBarraVitrina() {
 
   const antes = document.getElementById("vitrina-antes");
   const despues = document.getElementById("vitrina-despues");
+  const cerrar = document.getElementById("vitrina-cerrar");
   if (antes) antes.disabled = i <= 0;
   if (despues) despues.disabled = i >= slides.length - 1;
+  // El botón de "ya con eso" solo estorba cuando YA estás en el cierre.
+  if (cerrar) cerrar.disabled = i >= slides.length - 1;
 }
 
 function moverVitrina(delta) {
@@ -1467,6 +1480,13 @@ function moverVitrina(delta) {
   if (!c || !c.clientWidth) return;
   const destino = Math.max(0, Math.min(c.children.length - 1, indiceVitrina() + delta));
   c.scrollTo({ left: destino * c.clientWidth, behavior: "smooth" });
+}
+
+// "Ya con eso": salta hasta el final, donde está el total y se genera la nota.
+function irAlCierreDeVitrina() {
+  const c = vitrinaCarrusel();
+  if (!c || !c.clientWidth) return;
+  c.scrollTo({ left: (c.children.length - 1) * c.clientWidth, behavior: "smooth" });
 }
 
 // ===================================================================
@@ -3471,6 +3491,7 @@ async function initApp() {
   // Flechas y seguimiento del deslizado de la Vitrina
   document.getElementById("vitrina-antes").addEventListener("click", () => moverVitrina(-1));
   document.getElementById("vitrina-despues").addEventListener("click", () => moverVitrina(1));
+  document.getElementById("vitrina-cerrar").addEventListener("click", irAlCierreDeVitrina);
   const carrusel = vitrinaCarrusel();
   let pendiente = false;
   carrusel.addEventListener("scroll", () => {

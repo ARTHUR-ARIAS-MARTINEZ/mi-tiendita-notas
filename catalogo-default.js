@@ -27,7 +27,9 @@ const CATALOGO_DEFAULT = [
   { nombre: "Cable Tipo C CAB237", precio: 35, costo: 8.8, precioUsuario: 50, proveedor: "Chinos" },
   { nombre: "Cable iPhone CAB238", precio: 35, costo: 8.8, precioUsuario: 50, proveedor: "Chinos" },
   // ----- Buytiti (1) -----
-  { nombre: "Audífono Buytiti EZ-165", precio: 35, costo: 7, precioUsuario: 50, proveedor: "Buytiti", colores: ["Negro", "Rojo", "Blanco", "Verde", "Azul"] },
+  // Sin colores a propósito: su foto muestra los cuatro juntos y se exhibe en
+  // una sola diapositiva. Va a consignación, así que no lleva cuenta de piezas.
+  { nombre: "Audífono Buytiti EZ-165", precio: 35, costo: 7, precioUsuario: 50, proveedor: "Buytiti" },
   // ----- GDL (35) -----
   { nombre: "Cable V8 CAB236", precio: 50, costo: 9.5, precioUsuario: 65, proveedor: "GDL" },
   { nombre: "Cargador de Carga Media 2 Amp GAR063", precio: 35, costo: 15, precioUsuario: 50, proveedor: "GDL" },
