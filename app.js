@@ -1450,6 +1450,29 @@ function indiceVitrina() {
   return Math.round(c.scrollLeft / c.clientWidth);
 }
 
+// Las fotos se piden con carga diferida para no bajar las 80 de un jalón al
+// abrir. Pero así a secas, al deslizar rápido el cliente alcanza a ver el
+// recuadro vacío mientras la foto baja. Por eso se adelantan las vecinas: la
+// que se está viendo y dos de cada lado se piden YA, y quedan listas antes de
+// que el dedo llegue a ellas.
+function adelantarFotosVecinas(i) {
+  const c = vitrinaCarrusel();
+  if (!c) return;
+  const slides = c.children;
+  for (let k = i - 2; k <= i + 2; k++) {
+    const s = slides[k];
+    if (!s) continue;
+    const img = s.querySelector(".vitrina-foto img");
+    if (!img || img.dataset.adelantada) continue;
+    img.dataset.adelantada = "1";
+    img.loading = "eager";
+    // Además se pide aparte, para que quede guardada aunque la diapositiva
+    // todavía no se pinte.
+    const aparte = new Image();
+    aparte.src = img.src;
+  }
+}
+
 function actualizarBarraVitrina() {
   const c = vitrinaCarrusel();
   if (!c) return;
@@ -1457,6 +1480,7 @@ function actualizarBarraVitrina() {
   const i = Math.max(0, Math.min(indiceVitrina(), slides.length - 1));
   const actual = slides[i];
   const totalProductos = c.querySelectorAll("[data-slide-prod]").length;
+  adelantarFotosVecinas(i);
 
   const texto = document.getElementById("vitrina-pos-texto");
   if (texto) {
