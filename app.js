@@ -1345,10 +1345,18 @@ function slideDeProducto(p, color) {
       </div>
 
       <div class="vitrina-dinero">
-        <div class="vitrina-costo">Te cuesta <b>${fmtMoney(p.precio)}</b></div>
-        ${ganancia !== null ? `
-          <div class="vitrina-venta">Lo vendes en <b>${fmtMoney(usuario)}</b></div>
-          <div class="vitrina-gana"><span>GANAS</span>${fmtMoney(ganancia)}</div>` : ""}
+        <div class="vitrina-fila-chica">
+          <div class="vitrina-chip vitrina-chip-costo">
+            <span>TE CUESTA</span><b>${fmtMoney(p.precio)}</b>
+          </div>
+          ${ganancia !== null ? `
+          <div class="vitrina-chip vitrina-chip-venta">
+            <span>LO VENDES EN</span><b>${fmtMoney(usuario)}</b>
+          </div>` : ""}
+        </div>
+        ${ganancia !== null
+          ? `<div class="vitrina-gana"><span>GANAS</span>${fmtMoney(ganancia)}</div>`
+          : ""}
       </div>
 
       <div class="vitrina-qty">

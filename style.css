@@ -248,22 +248,37 @@ td{padding:8px;border-top:1px solid var(--border)}
 .vitrina-sinfoto-nombre{font-family:var(--font-h);font-weight:600;color:var(--text);font-size:.95rem}
 .vitrina-sinfoto-hint{font-size:.7rem}
 
-/* Los tres números, de menos a más protagonista: lo que le cuesta a la
-   tiendita (chico), a cómo lo revende (mediano) y lo que GANA (el grande,
-   que es el que la convence de comprar). */
-.vitrina-dinero{text-align:center;margin-top:9px}
-.vitrina-costo{font-size:.82rem;color:var(--muted);line-height:1.3}
-.vitrina-costo b{font-family:var(--font-h);font-weight:700;font-size:1.02rem;color:var(--text)}
-.vitrina-venta{font-size:.86rem;color:var(--muted);line-height:1.35;margin-top:1px}
-.vitrina-venta b{font-family:var(--font-h);font-weight:700;font-size:1.28rem;color:var(--text)}
+/* Los tres números en pirámide: arriba, en el mismo renglón, dos recuadros
+   delgados (lo que le cuesta a la tiendita y a cómo lo revende). Debajo, más
+   ancho y más grande, el de la GANANCIA: es el que la convence de comprar,
+   así que es el que pesa. */
+.vitrina-dinero{display:flex;flex-direction:column;align-items:center;gap:7px;margin-top:10px}
+.vitrina-fila-chica{display:flex;gap:9px;justify-content:center;width:100%;max-width:400px}
+.vitrina-chip{
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:5px 8px;border-radius:12px;
+  background:rgba(255,255,255,.05);border:1px solid var(--border)
+}
+.vitrina-chip span{
+  font-size:.56rem;font-weight:800;letter-spacing:.09em;
+  color:var(--muted);white-space:nowrap
+}
+.vitrina-chip b{font-family:var(--font-h);font-weight:800;font-size:1.12rem;line-height:1.15;color:var(--text)}
+/* El de "lo vendes en" es el que le interesa a la tiendita: va en ámbar. */
+.vitrina-chip-venta{background:rgba(255,183,3,.10);border-color:rgba(255,183,3,.32)}
+.vitrina-chip-venta span{color:rgba(255,183,3,.85)}
+.vitrina-chip-venta b{color:#ffb703}
+
 .vitrina-gana{
-  display:inline-flex;align-items:baseline;gap:8px;margin-top:6px;
-  padding:5px 16px;border-radius:14px;
-  background:rgba(43,255,15,.11);border:1px solid rgba(43,255,15,.34);
-  font-family:var(--font-h);font-weight:800;font-size:2.15rem;line-height:1.15;
+  display:inline-flex;align-items:baseline;justify-content:center;gap:10px;
+  padding:7px 22px;border-radius:16px;
+  background:rgba(43,255,15,.13);border:1.5px solid rgba(43,255,15,.42);
+  box-shadow:0 0 18px rgba(43,255,15,.12);
+  font-family:var(--font-h);font-weight:800;font-size:2.3rem;line-height:1.15;
   color:var(--green)
 }
-.vitrina-gana span{font-size:.68rem;font-weight:800;letter-spacing:.1em;opacity:.85}
+.vitrina-gana span{font-size:.72rem;font-weight:800;letter-spacing:.11em;opacity:.9}
 
 /* Botones grandes: el cliente los va a picar con el dedo, no con el mouse. */
 .vitrina-qty{display:flex;align-items:center;justify-content:center;gap:20px;margin-top:12px}

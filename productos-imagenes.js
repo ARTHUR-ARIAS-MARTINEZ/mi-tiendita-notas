@@ -160,6 +160,23 @@ const FOTOS_POR_COLOR = {
     "Blanco": "l22-blanco.webp",
     "Lila": "l22-lila.webp",
     "Rosa": "l22-rosa.webp"
+  },
+  // El T-500 no trae código que el buscador reconozca, va por palabra.
+  "reloj": {
+    "Negro": "t500-negro.webp",
+    "Naranja": "t500-naranja.webp",
+    "Blanco": "t500-blanco.webp",
+    "Azul": "t500-azul.webp"
+  },
+  "INPODS12": {
+    "Negro": "inpods12-negro.webp",
+    "Blanco": "inpods12-blanco.webp",
+    "Gris": "inpods12-gris.webp",
+    "Rosa": "inpods12-rosa.webp",
+    "Azul": "inpods12-azul.webp",
+    "Azul marino": "inpods12-azulmarino.webp",
+    "Verde": "inpods12-verde.webp",
+    "Amarillo": "inpods12-amarillo.webp"
   }
 };
 
