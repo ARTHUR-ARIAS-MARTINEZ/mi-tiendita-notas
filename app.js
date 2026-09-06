@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v51 · 6 sep 2026 · Ajustes en lista";
+const APP_VERSION = "v52 · 6 sep 2026 · Ajustes en lista";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -3289,10 +3289,7 @@ function actualizarTarjetaInstalar() {
     // Sin aviso del navegador (iPhone, o ya se usó): explicar la vía manual.
     btn.disabled = true;
     btn.textContent = "Instalar desde el menú del navegador";
-    texto.innerHTML =
-      'Instálala para que viva en tu celular y funcione <b>sin internet</b>.<br>' +
-      'Abre el menú de <b>⋮ Chrome</b> (arriba a la derecha) y elige ' +
-      '<b>“Instalar aplicación”</b> o <b>“Agregar a pantalla de inicio”</b>.';
+    texto.innerHTML = 'Menú <b>⋮</b> de Chrome › <b>Instalar aplicación</b>.';
   }
 }
 
