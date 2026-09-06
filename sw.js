@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v44";
+const CACHE = "mte-notas-v45";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -163,12 +163,12 @@ self.addEventListener("install", (ev) => {
     const cache = await caches.open(CACHE);
     // Esenciales: TODOS o falla (así nunca queda una instalación incompleta).
     await cache.addAll(CORE);
-    // Extras: mejor esfuerzo. Van EN TANDAS CHICAS a propósito.
-    // Antes se pedían las ~90 de un solo golpe y eso saturaba la conexión: la
-    // primera vez que abrías la app, las fotos de la Vitrina salían en blanco
-    // unos segundos porque competían con esta descarga. De 4 en 4 tarda casi
-    // lo mismo en total y deja pasar lo que el cliente está viendo.
-    await guardarPorTandas(cache, EXTRAS, 4);
+    // Los EXTRAS (fotos y fuentes, ~3.5 MB) NO se bajan aquí a propósito.
+    // Se medió: bajarlos durante la instalación acapara la conexión y hace que
+    // las fotos de la Vitrina salgan en blanco los primeros segundos, justo
+    // cuando le estás pasando el celular al cliente. Primero abre la app; el
+    // guardado para usarla sin internet lo dispara la propia app unos segundos
+    // después (ver guardarTodoEnSegundoPlano en app.js) o el botón de Ajustes.
     await self.skipWaiting();
   })());
 });
@@ -187,8 +187,9 @@ self.addEventListener("activate", (ev) => {
 self.addEventListener("message", (ev) => {
   if (ev.data && ev.data.type === "SKIP_WAITING") self.skipWaiting();
 
-  // La app pide guardar TODO de una vez, para poder usarse sin internet.
-  // De 4 en 4 y se reporta cuántos quedaron y cuáles no.
+  // La app pide guardar TODO, para poder usarse sin internet. Esto ya NO corre
+  // al instalar: lo dispara la app cuando la pantalla ya está lista, o el botón
+  // de Ajustes. De 4 en 4 y se reporta cuántos quedaron y cuáles no.
   if (ev.data && ev.data.type === "GUARDAR_TODO") {
     ev.waitUntil((async () => {
       const cache = await caches.open(CACHE);

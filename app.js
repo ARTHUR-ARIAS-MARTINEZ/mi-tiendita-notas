@@ -3455,6 +3455,30 @@ async function revisarOffline() {
   }
 }
 
+// Guarda la app completa en el celular SIN estorbar. Antes esto lo hacía el
+// service worker al instalarse, pero se midió que acaparaba la conexión y las
+// fotos de la Vitrina salían en blanco los primeros segundos. Ahora se espera
+// a que la pantalla ya esté pintada y a que el navegador esté sin trabajo.
+// No avisa nada: es callado y de fondo. El botón de Ajustes sigue estando por
+// si lo quieres forzar y ver el resultado.
+function guardarTodoEnSegundoPlano() {
+  if (!("serviceWorker" in navigator)) return;
+  const arrancar = () => {
+    if (!navigator.onLine) return; // sin señal no tiene caso; se reintenta al volver
+    navigator.serviceWorker.ready.then((reg) => {
+      const destino = navigator.serviceWorker.controller || reg.active;
+      if (destino) destino.postMessage({ type: "GUARDAR_TODO" });
+    }).catch(() => { /* si falla, queda el botón de Ajustes */ });
+  };
+  const enCuantoHayaCalma = () => {
+    if (window.requestIdleCallback) requestIdleCallback(arrancar, { timeout: 4000 });
+    else arrancar();
+  };
+  setTimeout(enCuantoHayaCalma, 9000);
+  // Si abriste sin señal, se guarda en cuanto vuelva.
+  window.addEventListener("online", () => setTimeout(enCuantoHayaCalma, 3000), { once: true });
+}
+
 async function guardarTodoOffline() {
   const caja = document.getElementById("estado-offline");
   const btn = document.getElementById("btn-guardar-offline");
@@ -3618,6 +3642,8 @@ async function initApp() {
   });
 
   if (typeof nubeArrancar === "function") nubeArrancar();
+
+  guardarTodoEnSegundoPlano();
 
   showScreen("nota");
 
