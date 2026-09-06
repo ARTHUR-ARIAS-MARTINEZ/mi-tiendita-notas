@@ -1,6 +1,6 @@
 {
  "version": 1,
- "actualizado": "2026-09-06T10:50:16",
+ "actualizado": "2026-09-06T11:08:43",
  "quien": "catalogo oficial desde la computadora",
  "productos": [
   {
@@ -25,14 +25,7 @@
    "costo": 7,
    "precioUsuario": 50,
    "proveedor": "Buytiti",
-   "mod": 1788124975343,
-   "colores": [
-    "Negro",
-    "Rojo",
-    "Blanco",
-    "Verde",
-    "Azul"
-   ]
+   "mod": 1788714523039
   },
   {
    "nombre": "Cable V8 CAB236",
