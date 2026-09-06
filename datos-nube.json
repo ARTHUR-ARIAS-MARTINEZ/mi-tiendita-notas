@@ -1,6 +1,6 @@
 {
  "version": 1,
- "actualizado": "2026-08-30T21:22:55.000Z",
+ "actualizado": "2026-09-06T10:50:16",
  "quien": "catalogo oficial desde la computadora",
  "productos": [
   {
@@ -344,7 +344,11 @@
    "costo": 66,
    "precioUsuario": 180,
    "proveedor": "GDL",
-   "mod": 1788124975343
+   "mod": 1788713416635,
+   "colores": [
+    "Negro",
+    "Blanco"
+   ]
   },
   {
    "nombre": "Cargador Carga Rápida 45W GAR171",
