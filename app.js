@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v52 · 6 sep 2026 · Ajustes en lista";
+const APP_VERSION = "v53 · 7 sep 2026 · Volver al inicio";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -1498,12 +1498,14 @@ function actualizarBarraVitrina() {
       : "";
   }
 
+  const inicio = document.getElementById("vitrina-inicio");
   const antes = document.getElementById("vitrina-antes");
   const despues = document.getElementById("vitrina-despues");
   const cerrar = document.getElementById("vitrina-cerrar");
   if (antes) antes.disabled = i <= 0;
   if (despues) despues.disabled = i >= slides.length - 1;
-  // El botón de "ya con eso" solo estorba cuando YA estás en el cierre.
+  // Los dos atajos se apagan cuando ya estás donde te llevarían.
+  if (inicio) inicio.disabled = i <= 0;
   if (cerrar) cerrar.disabled = i >= slides.length - 1;
 }
 
@@ -1519,6 +1521,14 @@ function irAlCierreDeVitrina() {
   const c = vitrinaCarrusel();
   if (!c || !c.clientWidth) return;
   c.scrollTo({ left: (c.children.length - 1) * c.clientWidth, behavior: "smooth" });
+}
+
+// "Empezar de nuevo": regresa al primer producto sin tener que deslizar de
+// vuelta. Lo que el cliente ya marcó NO se toca, solo se regresa la vista.
+function irAlInicioDeVitrina() {
+  const c = vitrinaCarrusel();
+  if (!c) return;
+  c.scrollTo({ left: 0, behavior: "smooth" });
 }
 
 // ===================================================================
@@ -3570,6 +3580,7 @@ async function initApp() {
   document.getElementById("vitrina-antes").addEventListener("click", () => moverVitrina(-1));
   document.getElementById("vitrina-despues").addEventListener("click", () => moverVitrina(1));
   document.getElementById("vitrina-cerrar").addEventListener("click", irAlCierreDeVitrina);
+  document.getElementById("vitrina-inicio").addEventListener("click", irAlInicioDeVitrina);
   const carrusel = vitrinaCarrusel();
   let pendiente = false;
   carrusel.addEventListener("scroll", () => {

@@ -298,13 +298,18 @@ td{padding:8px;border-top:1px solid var(--border)}
 .vitrina-aviso-caja{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 18px;text-align:center}
 .vitrina-aviso-caja p{font-size:.8rem;color:var(--muted);line-height:1.5;margin:8px 0 14px}
 
-.vitrina-barra{display:flex;align-items:center;gap:12px;padding:10px 14px 0;max-width:640px;margin:0 auto}
-.vitrina-flecha{width:46px;height:46px;flex:0 0 auto;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:1.5rem;line-height:1;font-family:inherit;cursor:pointer}
+/* Cuatro botones en la barra: al principio, atrás, adelante y al cierre.
+   Con 8 px de separación caben holgados incluso en un celular angosto. */
+.vitrina-barra{display:flex;align-items:center;gap:8px;padding:10px 14px 0;max-width:640px;margin:0 auto}
+.vitrina-flecha{width:44px;height:44px;flex:0 0 auto;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--text);font-size:1.5rem;line-height:1;font-family:inherit;cursor:pointer}
 .vitrina-flecha:active:not(:disabled){border-color:var(--green)}
 .vitrina-flecha:disabled{opacity:.2}
-/* "Ya con eso": brinca directo al final, donde se cierra la venta. */
+/* Los dos atajos de los extremos: al principio de la pasarela y al cierre.
+   El de cerrar va en verde porque es el que termina la venta; el de volver
+   al principio queda neutro para no competir con él. */
 .vitrina-ir-cierre{font-size:1.15rem;border-color:rgba(43,255,15,.4);background:rgba(43,255,15,.10)}
 .vitrina-ir-cierre:active:not(:disabled){background:rgba(43,255,15,.2)}
+.vitrina-ir-inicio{font-size:1rem}
 .vitrina-pos{flex:1;text-align:center;min-width:0}
 #vitrina-pos-texto{font-size:.72rem;color:var(--muted)}
 .vitrina-total-mini{font-family:var(--font-h);font-weight:700;font-size:.85rem;color:var(--green);min-height:1.1em}
