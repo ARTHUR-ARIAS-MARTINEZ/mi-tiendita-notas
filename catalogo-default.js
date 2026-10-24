@@ -23,6 +23,10 @@
 // Para actualizar precios sin capturarlos dos veces: en el Cotizador de Compras
 // usa "📲 Enviar precios a la app" y aquí en Ajustes "🔗 Traer precios del Cotizador".
 const CATALOGO_DEFAULT = [
+  // ----- Cubo robusto -----
+  // Principal, primero en la Vitrina. Es el GAR063 con el diseño mejorado: se
+  // vende más caro ($50) y convive en la misma nota con el de $35.
+  { nombre: "Cargador Cubo Robusto", precio: 50, costo: 15, precioUsuario: 65, proveedor: "" },
   // ----- Chinos (2) -----
   { nombre: "Cable Tipo C CAB237", precio: 35, costo: 8.8, precioUsuario: 50, proveedor: "Chinos" },
   { nombre: "Cable iPhone CAB238", precio: 35, costo: 8.8, precioUsuario: 50, proveedor: "Chinos" },

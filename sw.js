@@ -10,7 +10,7 @@
 // así borrar la versión vieja que sí servía. Ahora los archivos ESENCIALES se
 // guardan con addAll (todos o falla la instalación, y se queda la versión
 // anterior funcionando) y solo DESPUÉS se borra la versión vieja.
-const CACHE = "mte-notas-v54";
+const CACHE = "mte-notas-v55";
 
 // Sin estos la app no abre: si alguno no se puede guardar (mala señal al
 // instalar), la instalación falla a propósito y NO se rompe la versión previa.
@@ -49,6 +49,7 @@ const EXTRAS = [
   // para que se guarden de una vez y el cliente vea las fotos al instante,
   // aunque estés en una tiendita sin señal. Si alguna falla al bajar, se
   // guarda sola la primera vez que se vea con internet.
+  "productos/cubo-robusto.webp",
   "productos/cab236.webp",
   "productos/cab237.webp",
   "productos/cab238.webp",

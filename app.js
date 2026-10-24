@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v54 · 24 oct 2026 · Reporte en PDF";
+const APP_VERSION = "v55 · 24 oct 2026 · Cubo robusto";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -58,7 +58,7 @@ const State = {
   clienteSeleccionado: null, // id de cliente o null
   clienteNombreLibre: "",
   // Existencias que llevas en la ruta, para la Vitrina: { idProducto: piezas }.
-  // Solo aplica a los productos NOVEDOSOS; los 4 principales van a
+  // Solo aplica a los productos NOVEDOSOS; los principales van a
   // consignación y siempre están disponibles.
   stock: loadJSON(STORE_KEYS.stock, {}),
   // Fotos que tú le tomaste o subiste a un producto: { idProducto: dataURL }.
@@ -509,6 +509,24 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
   localStorage.setItem(FLAG, "1");
 })();
 
+// Migración: agrega al catálogo guardado en el celular el "Cargador Cubo
+// Robusto" (2026-10-24): la tiendita lo paga a $50 y lo revende a $65. Va como
+// producto principal, primero en la Vitrina. Cuesta $15, igual que el GAR063
+// de $35, con el que convive en la misma nota. Solo lo agrega si no existe ya
+// y no toca ningún otro producto. Se ejecuta una sola vez.
+(function agregarCuboRobusto() {
+  const FLAG = "mte_migr_catalogo_2026_10_cubo";
+  if (localStorage.getItem(FLAG)) return;
+  if (Array.isArray(State.catalogo)) {
+    const yaEsta = State.catalogo.some(p => String(p.nombre || "").toUpperCase().includes("CUBO ROBUSTO"));
+    if (!yaEsta) {
+      State.catalogo.push({ id: uid(), nombre: "Cargador Cubo Robusto", precio: 50, costo: 15, precioUsuario: 65, proveedor: "", colores: [] });
+      saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    }
+  }
+  localStorage.setItem(FLAG, "1");
+})();
+
 // Migración: sincroniza el catálogo con el Cotizador de Compras (2026-08-20).
 // Es ADITIVA: solo pone el proveedor donde falta, corrige el costo del GAR161
 // (venía $46, el real es $40.50) y agrega el Cargador Inalámbrico GAR151.
@@ -926,8 +944,10 @@ function quitarCliente() {
 }
 
 // Códigos de los productos que se destacan como "principales" arriba del
-// catálogo en la pantalla de Nota (los de mayor venta).
-const CODIGOS_PRODUCTOS_PRINCIPALES = ["CAB237", "CAB238", "EZ-165", "GAR063"];
+// catálogo en la pantalla de Nota (los de mayor venta). El orden de esta lista
+// es el orden en que salen en la Vitrina. El cubo robusto no trae código de
+// proveedor: se reconoce por las palabras de su nombre.
+const CODIGOS_PRODUCTOS_PRINCIPALES = ["CUBO ROBUSTO", "CAB237", "CAB238", "EZ-165", "GAR063"];
 function esProductoPrincipal(nombre) {
   const n = String(nombre || "").toUpperCase();
   return CODIGOS_PRODUCTOS_PRINCIPALES.some(cod => n.includes(cod));
@@ -962,7 +982,7 @@ function fotoDe(p, color) {
   return regla ? CARPETA_FOTOS + regla.archivo : null;
 }
 
-// Los 4 principales van a consignación: siempre están disponibles, no se
+// Los principales van a consignación: siempre están disponibles, no se
 // llevan cuenta de existencias. Por eso valen "sin límite".
 const SIN_LIMITE = Infinity;
 
@@ -1019,7 +1039,7 @@ function disponibleParaVender(p, color) {
 // Lo que se exhibe en la Vitrina, ya desglosado: CADA COLOR es su propia
 // diapositiva, para que el cliente lo vea deslizando y no picando botones.
 // Devuelve una lista de { p, color } en este orden:
-//   1) los 4 principales (siempre, son los de consignación)
+//   1) los principales (siempre, son los de consignación)
 //   2) los novedosos que SÍ llevas, color por color
 // Un color con existencia 0 no se exhibe. Si ya está en el carrito sí se
 // queda visible, aunque su existencia llegue a 0 con esta misma venta, para
@@ -1040,7 +1060,7 @@ function diapositivasDeVitrina() {
   return salida;
 }
 
-// Orden en el que se ven los productos en TODA la app: primero los 4
+// Orden en el que se ven los productos en TODA la app: primero los
 // principales (los de consignación, en su orden de siempre) y después todos
 // los demás por orden alfabético.
 function ordenPrincipal(nombre) {
@@ -1393,7 +1413,7 @@ function slideSinExistencias() {
       <div class="vitrina-aviso-caja">
         <div class="vitrina-sinfoto-icono">📦</div>
         <h3>Aquí van tus productos novedosos</h3>
-        <p>Por ahora solo se exhiben los 4 de consignación. Dile a la app cuántas piezas
+        <p>Por ahora solo se exhiben los de consignación. Dile a la app cuántas piezas
         llevas hoy de lo demás y saldrán aquí con su foto y su precio, listos para enseñárselos al cliente.</p>
         <button class="btn btn-accent" onclick="irAExistencias()">📦 Cargar existencias</button>
       </div>

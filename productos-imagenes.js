@@ -88,6 +88,7 @@ const FOTOS_POR_PALABRAS = [
   { palabras: ["l22"],                archivo: "l22-negro.webp" },
   { palabras: ["plug"],               archivo: "cableplug.webp" },
   { palabras: ["giratoria"],          archivo: "soporte-giratorio.webp" },
+  { palabras: ["cubo", "robusto"],    archivo: "cubo-robusto.webp" },  // Cargador Cubo Robusto
 ];
 
 
