@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v53 · 7 sep 2026 · Volver al inicio";
+const APP_VERSION = "v54 · 24 oct 2026 · Reporte en PDF";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -2949,9 +2949,8 @@ function generarReportePDF() {
 
   let totVenta = 0, totCosto = 0, totUtilidad = 0, totVentaConCosto = 0;
   let hayEstimados = false, haySinCosto = false;
-  // Filas para la descarga en Excel (CSV), con los mismos números del PDF.
-  const filasCSV = [["Venta", "Nota", "Fecha", "Cliente", "Cantidad", "Producto",
-                     "Costo Arthur", "Precio Cliente", "Total", "Utilidad"]];
+  // Los mismos números de la hoja, ordenados para armar el archivo PDF.
+  const ventasPDF = [];
 
   const bloques = ventas.map((t, idx) => {
     // "ConCosto" acumula solo las líneas cuyo costo se conoce. La utilidad se
@@ -2960,6 +2959,7 @@ function generarReportePDF() {
     // inflaría la utilidad.
     let subVenta = 0, subCosto = 0, subVentaConCosto = 0;
     let algunSinCosto = false;
+    const filasPDF = [];
 
     const filas = t.items.map(it => {
       const cant = Number(it.cantidad) || 0;
@@ -2980,12 +2980,7 @@ function generarReportePDF() {
         haySinCosto = true;
       }
 
-      filasCSV.push([
-        idx + 1, t.folio, new Date(t.fecha).toLocaleString("es-MX"),
-        t.cliente || "Público en general", cant, it.nombre,
-        costo === null ? "" : costo, precio, importe,
-        utilidad === null ? "" : utilidad,
-      ]);
+      filasPDF.push({ cant, nombre: it.nombre, estimado, costo, precio, importe, utilidad });
 
       return `<tr>
         <td>${cant}</td>
@@ -3005,6 +3000,17 @@ function generarReportePDF() {
 
     const fecha = new Date(t.fecha).toLocaleString("es-MX", {
       weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+
+    ventasPDF.push({
+      titulo: `Venta ${idx + 1} · Nota #${t.folio}`,
+      cliente: t.cliente || "Público en general",
+      fecha,
+      filas: filasPDF,
+      subtotalTexto: `Subtotal venta ${idx + 1}`,
+      algunSinCosto,
+      subVenta,
+      subUtilidad,
     });
 
     return `
@@ -3037,6 +3043,22 @@ function generarReportePDF() {
   const margen = totVentaConCosto > 0 ? (totUtilidad / totVentaConCosto) * 100 : 0;
   const generado = new Date().toLocaleString("es-MX");
 
+  // Cada aviso es una lista de pedazos; los de lugar impar van en negritas.
+  const avisos = [];
+  if (hayEstimados) {
+    avisos.push(["* Costo tomado del catálogo actual (esa venta se registró antes de guardar el costo), puede diferir del costo real de ese día."]);
+  }
+  if (haySinCosto) {
+    avisos.push([
+      "Hay productos sin costo capturado",
+      ' (aparecen con "—"). Sí cuentan en el total vendido, pero NO en el costo ni en la utilidad, para no inflar tu ganancia. Tu utilidad real es ',
+      "menor",
+      ' que la mostrada. Captura sus costos en "Ajustes > Catálogo de productos" y vuelve a generar el reporte.',
+    ]);
+  }
+  const avisoHtml = (pedazos) =>
+    pedazos.map((p, i) => i % 2 ? `<b>${escapeHtml(p)}</b>` : escapeHtml(p)).join("");
+
   const cuerpoReporte = `
     <div class="rp-titulo">
       <h1>${escapeHtml(State.negocio.nombre || "Mi Tiendita Expres")}</h1>
@@ -3054,18 +3076,28 @@ function generarReportePDF() {
 
     ${bloques}
 
-    ${(hayEstimados || haySinCosto) ? `
+    ${avisos.length ? `
       <div class="rp-avisos">
-        ${hayEstimados ? `<div>* Costo tomado del catálogo actual (esa venta se registró antes de guardar el costo), puede diferir del costo real de ese día.</div>` : ""}
-        ${haySinCosto ? `<div><b>Hay productos sin costo capturado</b> (aparecen con "—"). Sí cuentan en el total vendido, pero NO en el costo ni en la utilidad, para no inflar tu ganancia. Tu utilidad real es <b>menor</b> que la mostrada. Captura sus costos en "Ajustes &gt; Catálogo de productos" y vuelve a generar el reporte.</div>` : ""}
+        ${avisos.map(a => `<div>${avisoHtml(a)}</div>`).join("")}
       </div>` : ""}
   `;
 
-  // Totales al final del CSV, para que el archivo se explique solo.
-  filasCSV.push([]);
-  filasCSV.push(["TOTALES", "", "", "", "", "", "", "Vendido", totVenta, ""]);
-  filasCSV.push(["", "", "", "", "", "", "", "Costo", totCosto, ""]);
-  filasCSV.push(["", "", "", "", "", "", "", "Utilidad bruta", totUtilidad, ""]);
+  const nombreNegocio = State.negocio.nombre || "Mi Tiendita Expres";
+  const pdfBase64 = construirReportePDF({
+    titulo: "Reporte de ventas · " + etiquetaPeriodo,
+    negocio: nombreNegocio,
+    periodo: etiquetaPeriodo,
+    generado,
+    resumen: [
+      ["Ventas", String(ventas.length)],
+      ["Total vendido", fmtMoney(totVenta)],
+      ["Costo total", fmtMoney(totCosto)],
+      ["Utilidad bruta", fmtMoney(totUtilidad), true],
+      ["Margen", margen.toFixed(1) + "%"],
+    ],
+    ventas: ventasPDF,
+    avisos: avisos.map(a => a.join("")),
+  });
 
   const fechaArchivo = periodo === "dia" ? fechaEspecifica
     : periodo === "rango" ? (rangoDesde + "_a_" + rangoHasta)
@@ -3073,22 +3105,13 @@ function generarReportePDF() {
   abrirVentanaDeReporte(
     "Reporte de ventas · " + etiquetaPeriodo,
     cuerpoReporte,
-    aCSV(filasCSV),
-    "reporte-ventas-" + periodo + "-" + fechaArchivo + ".csv"
+    pdfBase64,
+    "reporte-ventas-" + periodo + "-" + fechaArchivo + ".pdf"
   );
 }
 
-// Convierte una tabla (arreglo de arreglos) a texto CSV para Excel.
-function aCSV(filas) {
-  const esc = (v) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-  };
-  return filas.map(f => f.map(esc).join(",")).join("\n");
-}
-
 // Abre el reporte en una PESTAÑA NUEVA e independiente de la app, con su
-// propio botón de "Imprimir / Guardar como PDF".
+// propio botón de "Imprimir" y otro de "Descargar PDF".
 //
 // Antes se armaba el reporte escondiendo la pantalla actual con CSS
 // (@media print) y llamando a window.print() automáticamente. En el celular
@@ -3099,7 +3122,7 @@ function aCSV(filas) {
 // Al abrir una pestaña nueva y dejar que el USUARIO toque el botón de
 // imprimir, ese problema de tiempos desaparece por completo: el botón solo
 // existe cuando el reporte ya está completo y pintado en pantalla.
-function abrirVentanaDeReporte(titulo, cuerpoHtml, csv, nombreArchivoCSV) {
+function abrirVentanaDeReporte(titulo, cuerpoHtml, pdfBase64, nombreArchivoPDF) {
   const estilos = `
     *,*::before,*::after{box-sizing:border-box}
     body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#000;background:#fff;margin:0;padding:16px 16px 40px}
@@ -3124,20 +3147,22 @@ function abrirVentanaDeReporte(titulo, cuerpoHtml, csv, nombreArchivoCSV) {
     .rp-barra{position:sticky;top:0;background:#fff;padding:8px 0 12px;margin-bottom:4px;border-bottom:1px dashed #ccc;display:flex;gap:8px;flex-wrap:wrap}
     .rp-btn{flex:1 1 45%;min-width:150px;padding:13px 10px;font-size:14px;font-weight:600;border-radius:8px;border:none;cursor:pointer}
     .rp-btn-print{background:#111;color:#fff}
-    .rp-btn-csv{background:#0a7a28;color:#fff}
+    .rp-btn-pdf{background:#0a7a28;color:#fff}
     .rp-ayuda{flex:1 1 100%;font-size:10px;color:#666;margin-top:2px}
     @media print{.rp-barra{display:none}}
     @page{margin:12mm}
   `;
 
-  // El CSV se incrusta como texto y se descarga desde la misma ventana, para
-  // que funcione sin internet y sin depender de la app principal.
+  // El PDF ya viene armado: se incrusta como texto y se descarga desde la misma
+  // ventana, para que funcione sin internet y sin depender de la app principal.
   const script = `
-    var CSV = ${JSON.stringify(csv || "")};
-    var NOMBRE = ${JSON.stringify(nombreArchivoCSV || "reporte.csv")};
-    function descargarCSV(){
-      // El BOM hace que Excel respete los acentos.
-      var blob = new Blob(["\\ufeff" + CSV], {type:"text/csv;charset=utf-8;"});
+    var PDF = ${JSON.stringify(pdfBase64 || "")};
+    var NOMBRE = ${JSON.stringify(nombreArchivoPDF || "reporte.pdf")};
+    function descargarPDF(){
+      var binario = atob(PDF);
+      var bytes = new Uint8Array(binario.length);
+      for (var i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+      var blob = new Blob([bytes], {type:"application/pdf"});
       var url = URL.createObjectURL(blob);
       var a = document.createElement("a");
       a.href = url; a.download = NOMBRE;
@@ -3152,9 +3177,9 @@ function abrirVentanaDeReporte(titulo, cuerpoHtml, csv, nombreArchivoCSV) {
     <style>${estilos}</style>
     </head><body>
       <div class="rp-barra">
-        <button class="rp-btn rp-btn-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
-        <button class="rp-btn rp-btn-csv" onclick="descargarCSV()">⬇️ Descargar (Excel)</button>
-        <div class="rp-ayuda">Para guardarlo como PDF: toca "Imprimir" y en <b>Destino</b> elige <b>"Guardar como PDF"</b>.</div>
+        <button class="rp-btn rp-btn-print" onclick="window.print()">🖨️ Imprimir</button>
+        <button class="rp-btn rp-btn-pdf" onclick="descargarPDF()">⬇️ Descargar PDF</button>
+        <div class="rp-ayuda">"Descargar PDF" guarda el reporte en tu celular. "Imprimir" lo manda a la impresora.</div>
       </div>
       ${cuerpoHtml}
       <script>${script}<\/script>
