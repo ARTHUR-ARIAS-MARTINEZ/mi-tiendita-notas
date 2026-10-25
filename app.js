@@ -7,7 +7,7 @@
 
 // Versión visible de la app (para confirmar que llegó la última actualización).
 // Súbela cada vez que se despliega un cambio, junto con CACHE en sw.js.
-const APP_VERSION = "v55 · 24 oct 2026 · Cubo robusto";
+const APP_VERSION = "v56 · 24 oct 2026 · Pantalla fija";
 
 const STORE_KEYS = {
   negocio: "mte_negocio",
@@ -512,15 +512,23 @@ if (!State.negocio || typeof State.negocio !== "object" || Array.isArray(State.n
 // Migración: agrega al catálogo guardado en el celular el "Cargador Cubo
 // Robusto" (2026-10-24): la tiendita lo paga a $50 y lo revende a $65. Va como
 // producto principal, primero en la Vitrina. Cuesta $15, igual que el GAR063
-// de $35, con el que convive en la misma nota. Solo lo agrega si no existe ya
-// y no toca ningún otro producto. Se ejecuta una sola vez.
+// de $35, con el que convive en la misma nota. Su proveedor es el de
+// Guadalajara (GDL), como el GAR063. Si falta, lo agrega; si ya estaba (la
+// versión anterior lo agregó sin proveedor), solo le pone el proveedor cuando
+// sigue vacío. No toca ningún otro producto. Se ejecuta una sola vez (la _b es
+// la segunda versión de esta migración: los celulares que ya corrieron la
+// primera vuelven a pasar por aquí para recibir el proveedor).
 (function agregarCuboRobusto() {
-  const FLAG = "mte_migr_catalogo_2026_10_cubo";
+  const FLAG = "mte_migr_catalogo_2026_10_cubo_b";
   if (localStorage.getItem(FLAG)) return;
   if (Array.isArray(State.catalogo)) {
-    const yaEsta = State.catalogo.some(p => String(p.nombre || "").toUpperCase().includes("CUBO ROBUSTO"));
-    if (!yaEsta) {
-      State.catalogo.push({ id: uid(), nombre: "Cargador Cubo Robusto", precio: 50, costo: 15, precioUsuario: 65, proveedor: "", colores: [] });
+    const cubo = State.catalogo.find(p => String(p.nombre || "").toUpperCase().includes("CUBO ROBUSTO"));
+    if (!cubo) {
+      State.catalogo.push({ id: uid(), nombre: "Cargador Cubo Robusto", precio: 50, costo: 15, precioUsuario: 65, proveedor: "GDL", colores: [] });
+      saveJSON(STORE_KEYS.catalogo, State.catalogo);
+    } else if (!cubo.proveedor) {
+      cubo.proveedor = "GDL";
+      if (typeof nubeMarcarProducto === "function") nubeMarcarProducto(cubo); // para que el cambio también suba a la nube
       saveJSON(STORE_KEYS.catalogo, State.catalogo);
     }
   }
@@ -3145,6 +3153,7 @@ function generarReportePDF() {
 function abrirVentanaDeReporte(titulo, cuerpoHtml, pdfBase64, nombreArchivoPDF) {
   const estilos = `
     *,*::before,*::after{box-sizing:border-box}
+    html,body,*{touch-action:pan-x pan-y}
     body{font-family:'Inter',system-ui,-apple-system,sans-serif;color:#000;background:#fff;margin:0;padding:16px 16px 40px}
     h1{font-size:18px;margin:0 0 2px}
     .rp-titulo{text-align:center;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:16px}
@@ -3192,7 +3201,7 @@ function abrirVentanaDeReporte(titulo, cuerpoHtml, pdfBase64, nombreArchivoPDF) 
   `;
 
   const html = `<!doctype html><html lang="es"><head><meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>${escapeHtml(titulo)}</title>
     <style>${estilos}</style>
     </head><body>
@@ -3608,7 +3617,16 @@ async function guardarTodoOffline() {
 
 // ---------- Arranque ----------
 
+// La pantalla es fija: no se agranda con dos dedos. En Android lo bloquean el
+// viewport y el CSS (touch-action); el iPhone ignora el viewport y solo
+// obedece a estos eventos de gesto.
+function bloquearZoom() {
+  ["gesturestart", "gesturechange", "gestureend"].forEach(nombre =>
+    document.addEventListener(nombre, e => e.preventDefault()));
+}
+
 async function initApp() {
+  bloquearZoom();
   await checkPinLock();
   document.querySelectorAll(".nav-btn").forEach(b => b.addEventListener("click", () => showScreen(b.dataset.screen)));
   document.getElementById("producto-buscar").addEventListener("input", () => renderCatalogoPicker());

@@ -2,6 +2,9 @@
    así se ve igual con o sin conexión. Ver fonts.css. */
 @import url('fonts.css');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+/* Pantalla fija: no se agranda con dos dedos ni con doble toque. Los dedos
+   solo sirven para deslizar hacia los lados y hacia arriba o abajo. */
+html,body,*{touch-action:pan-x pan-y}
 :root{
   --bg:#06070d;--card:rgba(15,18,32,.72);--card2:rgba(28,33,56,.6);
   --green:#2de015;--red:#FF0084;--text:#eaf2ee;--muted:#8aa0a8;
